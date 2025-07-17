@@ -1,0 +1,125 @@
+---
+import "../styles/global.css";
+import Modal from "../components/Modal.astro";
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Certificados UTEPSA</title>
+    <script src="https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js"></script>
+    <script src="../script/index.js"></script>
+    <script src="../script/login.js"></script>
+  </head>
+  <body class="bg-white min-h-screen p-4">
+    <div class="w-full max-w-4xl mx-auto bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2">
+        <!-- Lado izquierdo con animación -->
+        <div class="bg-[#cf152d] p-6 p-8 flex flex-col justify-center items-center relative min-h-[300px] lg:min-h-[600px]">
+          <div class="absolute inset-0 bg-black/10"></div>
+          <div class="relative z-10 text-center">
+            <div id="lottie-container" class="w-48 h-48 lg:w-64 lg:h-64 mx-auto mb-4"></div>
+            <h2 class="text-xl lg:text-2xl font-bold text-white mt-6 text-center relative z-10">
+				Sistema de Certificados Digitales
+			</h2>
+          </div>
+          <!-- Elementos decorativos -->
+          <div class="absolute top-6 left-6 lg:top-10 lg:left-10 w-16 h-16 lg:w-20 lg:h-20 bg-white/10 rounded-full"></div>
+          <div class="absolute bottom-6 right-6 lg:bottom-10 lg:right-10 w-24 h-24 lg:w-32 lg:h-32 bg-white/5 rounded-full"></div>
+          <div class="absolute top-1/2 left-3 lg:left-5 w-12 h-12 lg:w-16 lg:h-16 bg-white/10 rounded-full"></div>
+        </div>
+
+        <!-- Lado derecho con formulario -->
+        <div class="p-6 p-8 flex flex-col justify-center min-h-[400px] lg:min-h-[600px]">
+          <div class="w-full max-w-md mx-auto">
+            <div class="text-center mb-6 lg:mb-8">
+              <h1 class="text-2xl lg:text-3xl font-bold text-[#cf152d] mb-2">Iniciar Sesión</h1>
+              <p class="text-gray-600 text-sm lg:text-base">Accede a tu cuenta para descargar tus certificados</p>
+            </div>
+			<form class="space-y-4 lg:space-y-6">
+				<!-- Campo Usuario -->
+				<div class="relative">
+				  <label class="block text-sm font-medium text-gray-700 mb-2">
+					Usuario
+				  </label>
+				  <div class="relative">
+					<input
+					  type="text"
+					  class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200 bg-white/80 backdrop-blur-sm"
+					  placeholder="Ingresa tu usuario"
+					/>
+					<svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+					</svg>
+				  </div>
+				</div>
+	
+				<!-- Campo Contraseña -->
+				<div class="relative">
+				  <label class="block text-sm font-medium text-gray-700 mb-2">
+					Contraseña
+				  </label>
+				  <div class="relative">
+					<input
+					  type="password"
+					  class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200 bg-white/80 backdrop-blur-sm"
+					  placeholder="Ingresa tu contraseña"
+					/>
+					<svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+					</svg>
+				  </div>
+				</div>
+	
+				<!-- Enlace Olvidé contraseña -->
+				<div class="text-right">
+				  <a href="#" class="text-sm text-[#cf152d] hover:text-[#cf152d]/80 transition-colors duration-200 cursor-pointer">
+					¿Olvidaste tu contraseña?
+				  </a>
+				</div>
+	
+				<!-- Botón de inicio de sesión -->
+				<button
+				  type="submit"
+				  class="w-full bg-gradient-to-r from-[#cf152d] to-[#cf152d]/90 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+				>
+				  Iniciar Sesión
+				</button>
+			  </form>
+	
+			  <!-- Pie de página -->
+			  <div class="text-center mt-6 lg:mt-8 pt-4 lg:pt-6 border-t border-gray-200">
+				<p class="text-xs lg:text-sm text-gray-500">
+				  © 2025 UTEPSA. Todos los derechos reservados.
+				</p>
+			  </div>
+			</div>
+		  </div>
+		    </div>
+
+    <!-- Modal de Certificados -->
+    <Modal />
+
+    <script>
+      // Cargar la animación Lottie cuando el DOM esté listo
+      document.addEventListener('DOMContentLoaded', function() {
+        // @ts-ignore
+        if (typeof lottie !== 'undefined') {
+          // @ts-ignore
+          lottie.loadAnimation({
+            container: document.getElementById('lottie-container'),
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: '/animation/student.json'
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
+
+
