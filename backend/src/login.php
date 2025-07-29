@@ -16,39 +16,51 @@ class Login {
 
     public function authenticate($usuario, $contrasena) {
         try {
-            // Hash MD5 de la contraseña
-            $contrasena_hash = md5($contrasena);
+            // Primero verificar si el usuario existe
+            $query_usuario = "SELECT id, nombre, apellido, usuario, contrasena FROM " . $this->table_name . 
+                            " WHERE usuario = :usuario";
             
-            $query = "SELECT id, nombre, apellido, usuario FROM " . $this->table_name . 
-                     " WHERE usuario = :usuario AND contrasena = :contrasena";
+            $stmt_usuario = $this->conn->prepare($query_usuario);
+            $stmt_usuario->bindParam(":usuario", $usuario);
+            $stmt_usuario->execute();
             
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(":usuario", $usuario);
-            $stmt->bindParam(":contrasena", $contrasena_hash);
-            $stmt->execute();
-            
-            if($stmt->rowCount() > 0) {
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                return array(
-                    "success" => true,
-                    "message" => "Sesión iniciada correctamente",
-                    "user" => array(
-                        "id" => $row['id'],
-                        "nombre" => $row['nombre'],
-                        "apellido" => $row['apellido'],
-                        "usuario" => $row['usuario']
-                    )
-                );
-            } else {
+            if($stmt_usuario->rowCount() == 0) {
                 return array(
                     "success" => false,
-                    "message" => "Usuario o contraseña incorrectos"
+                    "message" => "El usuario no existe",
+                    "error_type" => "user_not_found"
                 );
             }
+            
+            // Si el usuario existe, verificar la contraseña
+            $row = $stmt_usuario->fetch(PDO::FETCH_ASSOC);
+            $contrasena_hash = md5($contrasena);
+            
+            if($row['contrasena'] !== $contrasena_hash) {
+                return array(
+                    "success" => false,
+                    "message" => "Contraseña incorrecta",
+                    "error_type" => "wrong_password"
+                );
+            }
+            
+            // Si llegamos aquí, la autenticación es exitosa
+            return array(
+                "success" => true,
+                "message" => "Sesión iniciada correctamente",
+                "user" => array(
+                    "id" => $row['id'],
+                    "nombre" => $row['nombre'],
+                    "apellido" => $row['apellido'],
+                    "usuario" => $row['usuario']
+                )
+            );
+            
         } catch(PDOException $e) {
             return array(
                 "success" => false,
-                "message" => "Error en la base de datos: " . $e->getMessage()
+                "message" => "Error en la base de datos: " . $e->getMessage(),
+                "error_type" => "database_error"
             );
         }
     }

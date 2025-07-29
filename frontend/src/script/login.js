@@ -14,13 +14,25 @@ document.addEventListener('DOMContentLoaded', function() {
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const usuario = document.querySelector('input[type="text"]').value;
-            const contrasena = document.querySelector('input[type="password"]').value;
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
             
-            if (!usuario || !contrasena) {
+            // Verificar si ya está procesando
+            if (submitButton.disabled) {
+                return;
+            }
+            
+            const usuario = document.querySelector('input[name="usuario"]').value;
+            const contrasena = document.querySelector('input[name="contrasena"]');
+            const contrasenaValue = contrasena ? contrasena.value : '';
+            
+            if (!usuario || !contrasenaValue) {
                 alert('Por favor, completa todos los campos');
                 return;
             }
+            
+            // Mostrar spinner y deshabilitar botón
+            mostrarSpinner(submitButton);
             
             try {
                 const response = await fetch(Config.getLoginUrl(), {
@@ -30,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     body: JSON.stringify({
                         usuario: usuario,
-                        contrasena: contrasena
+                        contrasena: contrasenaValue
                     })
                 });
                 
@@ -40,10 +52,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Obtener certificados del usuario
                     await obtenerCertificados(data.user.id);
                 } else {
-                    alert(data.message || 'Error al iniciar sesión');
+                    // Manejar diferentes tipos de error
+                    let mensajeError = data.message || 'Error al iniciar sesión';
+                    
+                    if (data.error_type === 'user_not_found') {
+                        mensajeError = 'El usuario no existe. Verifica tu número de estudiante.';
+                    } else if (data.error_type === 'wrong_password') {
+                        mensajeError = 'Contraseña incorrecta. Intenta nuevamente.';
+                    } else if (data.error_type === 'database_error') {
+                        mensajeError = 'Error del servidor. Contacta al administrador.';
+                    }
+                    
+                    mostrarError(mensajeError);
                 }
             } catch (error) {
-                alert('Error de conexión. Intenta nuevamente.');
+                mostrarError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
+            } finally {
+                // Restaurar botón
+                restaurarBoton(submitButton, originalButtonText);
             }
         });
     }
@@ -65,7 +91,7 @@ async function obtenerCertificados(userId) {
         const data = await response.json();
         mostrarModalCertificados(data);
     } catch (error) {
-        alert('Error al obtener certificados');
+        mostrarError('Error al obtener certificados. Intenta nuevamente.');
     }
 }
 
@@ -222,4 +248,70 @@ window.cerrarModal = function() {
 function descargarCertificado(nroCertificado) {
     alert(`Descargando certificado: ${nroCertificado}`);
     // Aquí puedes implementar la lógica de descarga
+}
+
+// Función para mostrar errores de manera elegante
+function mostrarError(mensaje) {
+    // Crear elemento de error si no existe
+    let errorDiv = document.getElementById('error-message');
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.id = 'error-message';
+        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full';
+        
+        // Agregar botón de cerrar
+        errorDiv.innerHTML = `
+            <div class="flex items-center justify-between">
+                <span>${mensaje}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(errorDiv);
+    } else {
+        // Actualizar mensaje existente
+        errorDiv.querySelector('span').textContent = mensaje;
+    }
+    
+    // Mostrar el error con animación
+    setTimeout(() => {
+        errorDiv.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Ocultar automáticamente después de 5 segundos
+    setTimeout(() => {
+        if (errorDiv.parentElement) {
+            errorDiv.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (errorDiv.parentElement) {
+                    errorDiv.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Función para mostrar spinner en el botón
+function mostrarSpinner(button) {
+    button.disabled = true;
+    button.innerHTML = `
+        <div class="flex items-center justify-center space-x-2">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Iniciando sesión...</span>
+        </div>
+    `;
+    button.classList.add('opacity-75', 'cursor-not-allowed');
+}
+
+// Función para restaurar el botón
+function restaurarBoton(button, originalText) {
+    button.disabled = false;
+    button.innerHTML = originalText;
+    button.classList.remove('opacity-75', 'cursor-not-allowed');
 }
