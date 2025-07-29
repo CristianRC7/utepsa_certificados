@@ -5,7 +5,8 @@ const Config = {
     // Endpoints
     ENDPOINTS: {
         LOGIN: 'login.php',
-        CERTIFICADOS: 'certificados.php'
+        CERTIFICADOS: 'certificados.php',
+        DOWNLOAD: 'download.php'
     },
     
     // URL completa para login
@@ -16,6 +17,11 @@ const Config = {
     // URL completa para certificados
     getCertificadosUrl() {
         return this.API_BASE_URL + this.ENDPOINTS.CERTIFICADOS;
+    },
+    
+    // URL completa para descarga
+    getDownloadUrl() {
+        return this.API_BASE_URL + this.ENDPOINTS.DOWNLOAD;
     }
 };
 

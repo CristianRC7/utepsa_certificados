@@ -19,6 +19,7 @@ declare global {
     cerrarModalContrasena?: () => void;
     cerrarModal?: () => void;
     cambiarPagina?: (nuevaPagina: number) => void;
+    descargarCertificado?: (nroCertificado: string) => Promise<void>;
   }
 }
 

@@ -5,6 +5,7 @@ import Config from '../utils/Config.js';
 let certificadosActuales = [];
 let paginaActual = 1;
 const certificadosPorPagina = 4;
+let usuarioActualId = null;
 
 // Funcionalidad de login
 document.addEventListener('DOMContentLoaded', function() {
@@ -53,6 +54,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (data.success) {
+                    // Guardar el ID del usuario
+                    usuarioActualId = data.user.id;
                     // Obtener certificados del usuario
                     await obtenerCertificados(data.user.id);
                 } else {
@@ -134,7 +137,7 @@ function mostrarModalCertificados(data) {
         modalContent.innerHTML = generarHTMLModal();
     } else {
         modalContent.innerHTML = `
-            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="bg-white rounded-lg shadow-xl w-full">
                 <div class="flex items-center justify-between p-6 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">Mis Certificados</h3>
                     <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer">
@@ -165,7 +168,7 @@ function generarHTMLModal() {
     const certificadosPagina = certificadosActuales.slice(inicio, fin);
     
     let html = `
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+        <div class="bg-white rounded-lg shadow-xl w-full">
             <div class="flex items-center justify-between p-6 border-b border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-900">Mis Certificados</h3>
                 <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer">
@@ -181,8 +184,8 @@ function generarHTMLModal() {
     certificadosPagina.forEach(certificado => {
         html += `
             <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div class="flex justify-between items-start">
-                    <div class="flex items-start space-x-3 flex-1">
+                <div class="flex flex-col space-y-3">
+                    <div class="flex items-start space-x-3">
                         <div class="flex-shrink-0">
                             <svg class="w-8 h-8 text-[#cf152d]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -194,11 +197,11 @@ function generarHTMLModal() {
                         </div>
                     </div>
                     <button onclick="descargarCertificado('${certificado.nro_certificado}')" 
-                            class="bg-[#cf152d] text-white px-4 py-2 rounded-lg hover:bg-[#cf152d]/90 transition-colors cursor-pointer flex items-center space-x-2">
+                            class="w-full bg-[#cf152d] text-white px-4 py-3 rounded-lg hover:bg-[#cf152d]/90 transition-colors cursor-pointer flex items-center justify-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3 3-3m-6 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
-                        <span>Descargar</span>
+                        <span>Descargar Certificado</span>
                     </button>
                 </div>
             </div>
@@ -212,17 +215,17 @@ function generarHTMLModal() {
     // Agregar paginación si hay más de una página
     if (totalPaginas > 1) {
         html += `
-                <div class="mt-6 flex items-center justify-between">
-                    <div class="text-sm text-gray-600">
+                <div class="mt-6 flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                    <div class="text-sm text-gray-600 text-center sm:text-left">
                         Mostrando ${inicio + 1} - ${Math.min(fin, totalCertificados)} de ${totalCertificados} certificados
                     </div>
-                    <div class="flex space-x-2">
+                    <div class="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
                         <button onclick="cambiarPagina(${paginaActual - 1})" 
                                 class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${paginaActual === 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
                                 ${paginaActual === 1 ? 'disabled' : ''}>
                             Anterior
                         </button>
-                        <div class="flex space-x-1">
+                        <div class="flex justify-center space-x-1">
         `;
         
         for (let i = 1; i <= totalPaginas; i++) {
@@ -272,14 +275,50 @@ window.cerrarModal = function() {
     }
 }
 
-// Función para descargar certificado (placeholder)
-async function descargarCertificado(nroCertificado) {
-    if (window.showToast) {
-        await window.showToast.success(`Descargando certificado: ${nroCertificado}`);
-    } else {
-        alert(`Descargando certificado: ${nroCertificado}`);
+// Función para descargar certificado
+window.descargarCertificado = async function(nroCertificado) {
+    try {
+        // Obtener el ID del usuario del localStorage o de alguna variable global
+        // Por ahora, vamos a obtenerlo del primer certificado disponible
+        if (certificadosActuales.length > 0) {
+            // Buscar el certificado específico para obtener información adicional si es necesario
+            const certificado = certificadosActuales.find(cert => cert.nro_certificado === nroCertificado);
+            
+            // Mostrar toast de carga
+            if (window.showToast) {
+                await window.showToast.info('Generando certificado...');
+            }
+            
+            // Construir la URL de descarga
+            const downloadUrl = `${Config.getDownloadUrl()}?userId=${usuarioActualId}&certificateId=${nroCertificado}`;
+            
+            // Crear un enlace temporal y hacer clic en él para descargar
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `certificado_${nroCertificado}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Mostrar toast de éxito
+            if (window.showToast) {
+                await window.showToast.success(`Certificado ${nroCertificado} descargado exitosamente`);
+            }
+        } else {
+            if (window.showToast) {
+                await window.showToast.error('No se pudo obtener información del certificado');
+            } else {
+                alert('No se pudo obtener información del certificado');
+            }
+        }
+    } catch (error) {
+        if (window.showToast) {
+            await window.showToast.error('Error al descargar el certificado');
+        } else {
+            alert('Error al descargar el certificado');
+        }
+        console.error('Error al descargar certificado:', error);
     }
-    // Aquí puedes implementar la lógica de descarga
 }
 
 
