@@ -1,8 +1,22 @@
 <?php
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+// Configuración de seguridad
+error_reporting(0);
+ini_set('display_errors', 0);
+
+// Headers de seguridad
+header('Access-Control-Allow-Origin: http://localhost:4321');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('X-XSS-Protection: 1; mode=block');
+
+// Verificar método HTTP
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 require_once '../conexion.php';
 
@@ -68,23 +82,67 @@ class Login {
 
 // Manejar la solicitud
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $database = new Database();
-    $db = $database->getConnection();
-    $login = new Login($db);
-    
-    // Obtener datos del POST
-    $data = json_decode(file_get_contents("php://input"), true);
-    
-    if(isset($data['usuario']) && isset($data['contrasena'])) {
-        $result = $login->authenticate($data['usuario'], $data['contrasena']);
+    try {
+        $database = new Database();
+        $db = $database->getConnection();
+        $login = new Login($db);
+        
+        // Obtener y validar datos del POST
+        $input = file_get_contents("php://input");
+        $data = json_decode($input, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            http_response_code(400);
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Datos JSON inválidos"
+            ));
+            exit;
+        }
+        
+        if (!isset($data['usuario']) || !isset($data['contrasena'])) {
+            http_response_code(400);
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Datos incompletos"
+            ));
+            exit;
+        }
+        
+        // Sanitizar y validar datos
+        $usuario = filter_var($data['usuario'], FILTER_SANITIZE_STRING);
+        $contrasena = $data['contrasena'];
+        
+        if (empty($usuario) || strlen($usuario) > 50) {
+            http_response_code(400);
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Usuario inválido"
+            ));
+            exit;
+        }
+        
+        if (empty($contrasena) || strlen($contrasena) > 100) {
+            http_response_code(400);
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Contraseña inválida"
+            ));
+            exit;
+        }
+        
+        $result = $login->authenticate($usuario, $contrasena);
         echo json_encode($result);
-    } else {
+        
+    } catch (Exception $e) {
+        http_response_code(500);
         echo json_encode(array(
             "success" => false,
-            "message" => "Datos incompletos"
+            "message" => "Error interno del servidor"
         ));
     }
 } else {
+    http_response_code(405);
     echo json_encode(array(
         "success" => false,
         "message" => "Método no permitido"
