@@ -300,9 +300,9 @@ window.descargarCertificado = async function(nroCertificado) {
             link.click();
             document.body.removeChild(link);
             
-            // Mostrar toast de éxito
+            // Mostrar toast de éxito con el nombre del evento
             if (window.showToast) {
-                await window.showToast.success(`Certificado ${nroCertificado} descargado exitosamente`);
+                await window.showToast.success(`Certificado del evento ${certificado.nombre_evento} descargado exitosamente`);
             }
         } else {
             if (window.showToast) {
