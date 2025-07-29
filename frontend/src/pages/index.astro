@@ -1,6 +1,8 @@
 ---
 import "../styles/global.css";
 import Modal from "../components/Modal.astro";
+import ModalContrasena from "../components/ModalContrasena.astro";
+import SonnerToaster from "../components/SonnerToaster.jsx";
 ---
 
 <html lang="es">
@@ -78,7 +80,7 @@ import Modal from "../components/Modal.astro";
 	
 				<!-- Enlace Olvidé contraseña -->
 				<div class="text-right">
-				  <a href="#" class="text-sm text-[#cf152d] hover:text-[#cf152d]/80 transition-colors duration-200 cursor-pointer">
+				  <a href="#" onclick="mostrarModalContrasena()" class="text-sm text-[#cf152d] hover:text-[#cf152d]/80 transition-colors duration-200 cursor-pointer">
 					¿Olvidaste tu contraseña?
 				  </a>
 				</div>
@@ -105,6 +107,12 @@ import Modal from "../components/Modal.astro";
     <!-- Modal de Certificados -->
     <Modal />
 
+    <!-- Modal de Contraseña -->
+    <ModalContrasena />
+
+    <!-- Toaster de Sonner -->
+    <SonnerToaster client:only="react" />
+
     <script>
       // Cargar la animación Lottie cuando el DOM esté listo
       document.addEventListener('DOMContentLoaded', function() {
@@ -120,7 +128,62 @@ import Modal from "../components/Modal.astro";
           });
         }
       });
+
+      // Función para esperar a que Sonner esté disponible
+      function waitForSonner() {
+        return new Promise<typeof window.sonner>((resolve) => {
+          if (window.sonner) {
+            resolve(window.sonner);
+          } else {
+            const checkSonner = () => {
+              if (window.sonner) {
+                resolve(window.sonner);
+              } else {
+                setTimeout(checkSonner, 100);
+              }
+            };
+            checkSonner();
+          }
+        });
+      }
+
+      // Exponer función global para usar Sonner
+      window.showToast = {
+        success: async (message) => {
+          const sonner = await waitForSonner();
+          sonner!.success(message);
+        },
+        error: async (message) => {
+          const sonner = await waitForSonner();
+          sonner!.error(message);
+        },
+        info: async (message) => {
+          const sonner = await waitForSonner();
+          sonner!.info(message);
+        },
+        warning: async (message) => {
+          const sonner = await waitForSonner();
+          sonner!.warning(message);
+        }
+      };
+
+      // Funciones para el modal de contraseña
+      window.mostrarModalContrasena = function() {
+        const modal = document.getElementById('modal-contrasena');
+        if (modal) {
+          modal.classList.remove('hidden');
+        }
+      };
+
+      window.cerrarModalContrasena = function() {
+        const modal = document.getElementById('modal-contrasena');
+        if (modal) {
+          modal.classList.add('hidden');
+        }
+      };
     </script>
+
+
   </body>
 </html>
 

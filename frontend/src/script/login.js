@@ -27,7 +27,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const contrasenaValue = contrasena ? contrasena.value : '';
             
             if (!usuario || !contrasenaValue) {
-                alert('Por favor, completa todos los campos');
+                if (window.showToast) {
+                    await window.showToast.error('Por favor, completa todos los campos');
+                } else {
+                    alert('Por favor, completa todos los campos');
+                }
                 return;
             }
             
@@ -56,17 +60,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     let mensajeError = data.message || 'Error al iniciar sesión';
                     
                     if (data.error_type === 'user_not_found') {
-                        mensajeError = 'El usuario no existe. Verifica tu número de estudiante.';
+                        if (window.showToast) {
+                            await window.showToast.error('El usuario no existe. Verifica tu número de estudiante.');
+                        } else {
+                            alert('El usuario no existe. Verifica tu número de estudiante.');
+                        }
                     } else if (data.error_type === 'wrong_password') {
-                        mensajeError = 'Contraseña incorrecta. Intenta nuevamente.';
+                        if (window.showToast) {
+                            await window.showToast.error('Contraseña incorrecta. Intenta nuevamente.');
+                        } else {
+                            alert('Contraseña incorrecta. Intenta nuevamente.');
+                        }
                     } else if (data.error_type === 'database_error') {
-                        mensajeError = 'Error del servidor. Contacta al administrador.';
+                        if (window.showToast) {
+                            await window.showToast.error('Error del servidor. Contacta al administrador.');
+                        } else {
+                            alert('Error del servidor. Contacta al administrador.');
+                        }
+                    } else {
+                        if (window.showToast) {
+                            await window.showToast.error(mensajeError);
+                        } else {
+                            alert(mensajeError);
+                        }
                     }
-                    
-                    mostrarError(mensajeError);
                 }
             } catch (error) {
-                mostrarError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
+                if (window.showToast) {
+                    await window.showToast.error('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
+                } else {
+                    alert('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
+                }
             } finally {
                 // Restaurar botón
                 restaurarBoton(submitButton, originalButtonText);
@@ -91,7 +115,11 @@ async function obtenerCertificados(userId) {
         const data = await response.json();
         mostrarModalCertificados(data);
     } catch (error) {
-        mostrarError('Error al obtener certificados. Intenta nuevamente.');
+        if (window.showToast) {
+            await window.showToast.error('Error al obtener certificados. Intenta nuevamente.');
+        } else {
+            alert('Error al obtener certificados. Intenta nuevamente.');
+        }
     }
 }
 
@@ -245,54 +273,16 @@ window.cerrarModal = function() {
 }
 
 // Función para descargar certificado (placeholder)
-function descargarCertificado(nroCertificado) {
-    alert(`Descargando certificado: ${nroCertificado}`);
+async function descargarCertificado(nroCertificado) {
+    if (window.showToast) {
+        await window.showToast.success(`Descargando certificado: ${nroCertificado}`);
+    } else {
+        alert(`Descargando certificado: ${nroCertificado}`);
+    }
     // Aquí puedes implementar la lógica de descarga
 }
 
-// Función para mostrar errores de manera elegante
-function mostrarError(mensaje) {
-    // Crear elemento de error si no existe
-    let errorDiv = document.getElementById('error-message');
-    if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.id = 'error-message';
-        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full';
-        
-        // Agregar botón de cerrar
-        errorDiv.innerHTML = `
-            <div class="flex items-center justify-between">
-                <span>${mensaje}</span>
-                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
-        document.body.appendChild(errorDiv);
-    } else {
-        // Actualizar mensaje existente
-        errorDiv.querySelector('span').textContent = mensaje;
-    }
-    
-    // Mostrar el error con animación
-    setTimeout(() => {
-        errorDiv.classList.remove('translate-x-full');
-    }, 100);
-    
-    // Ocultar automáticamente después de 5 segundos
-    setTimeout(() => {
-        if (errorDiv.parentElement) {
-            errorDiv.classList.add('translate-x-full');
-            setTimeout(() => {
-                if (errorDiv.parentElement) {
-                    errorDiv.remove();
-                }
-            }, 300);
-        }
-    }, 5000);
-}
+
 
 // Función para mostrar spinner en el botón
 function mostrarSpinner(button) {
