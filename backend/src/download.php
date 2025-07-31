@@ -170,8 +170,11 @@ try {
     $yNroCertificado = $pdf->getPageHeight() - 10;
     $pdf->Text($xNroCertificado, $yNroCertificado, 'Nro* ' . $nroCertificado);
 
+    // Generar nombre del archivo con el evento
+    $nombreArchivo = 'certificado_' . str_replace(' ', '_', strtolower($nombreEvento)) . '.pdf';
+    
     // Generar PDF y descargar
-    $pdf->Output('certificado_' . $nroCertificado . '.pdf', 'D');
+    $pdf->Output($nombreArchivo, 'D');
     exit;
     
 } catch (Exception $e) {
