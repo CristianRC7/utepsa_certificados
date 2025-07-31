@@ -31,8 +31,11 @@ class Login {
     public function authenticate($usuario, $contrasena) {
         try {
             // Primero verificar si el usuario existe
-            $query_usuario = "SELECT id, nombre, apellido, usuario, contrasena FROM " . $this->table_name . 
-                            " WHERE usuario = :usuario";
+            $query_usuario = "SELECT u.id, u.nombre, u.apellido, u.usuario, u.contrasena, 
+                                    CASE WHEN a.id IS NOT NULL THEN 1 ELSE 0 END as is_admin
+                             FROM " . $this->table_name . " u
+                             LEFT JOIN administradores a ON u.id = a.usuario_id AND a.activo = 1
+                             WHERE u.usuario = :usuario";
             
             $stmt_usuario = $this->conn->prepare($query_usuario);
             $stmt_usuario->bindParam(":usuario", $usuario);
@@ -66,7 +69,8 @@ class Login {
                     "id" => $row['id'],
                     "nombre" => $row['nombre'],
                     "apellido" => $row['apellido'],
-                    "usuario" => $row['usuario']
+                    "usuario" => $row['usuario'],
+                    "is_admin" => (bool)$row['is_admin']
                 )
             );
             

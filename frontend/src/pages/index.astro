@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import Modal from "../components/Modal.astro";
 import ModalContrasena from "../components/ModalContrasena.astro";
+import ModalAdmin from "../components/ModalAdmin.astro";
 import SonnerToaster from "../components/SonnerToaster.jsx";
 ---
 
@@ -15,6 +16,7 @@ import SonnerToaster from "../components/SonnerToaster.jsx";
     <script src="https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js"></script>
     <script src="../script/index.js"></script>
     <script src="../script/login.js"></script>
+    <script src="../script/admin.js"></script>
   </head>
   <body class="bg-white min-h-screen p-4 flex items-center justify-center">
     <div class="w-full max-w-4xl mx-auto bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
@@ -109,6 +111,9 @@ import SonnerToaster from "../components/SonnerToaster.jsx";
 
     <!-- Modal de Contraseña -->
     <ModalContrasena />
+
+    <!-- Modal de Administrador -->
+    <ModalAdmin />
 
     <!-- Toaster de Sonner -->
     <SonnerToaster client:only="react" />

@@ -17,6 +17,7 @@ class Certificados {
         try {
             $query = "SELECT 
                         p.nro_certificado,
+                        p.estado_pago,
                         e.nombre_evento,
                         e.imagen_certificado,
                         u.nombre,

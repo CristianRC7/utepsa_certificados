@@ -1,0 +1,402 @@
+---
+import "../styles/global.css";
+import SonnerToaster from "../components/SonnerToaster.jsx";
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Panel de Administración - UTEPSA</title>
+    <script src="../script/admin.js"></script>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+          <div class="flex items-center space-x-4">
+            <div class="w-10 h-10 bg-[#cf152d] rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-xl font-semibold text-gray-900">Panel de Administración</h1>
+              <p class="text-sm text-gray-600">Sistema de Certificados UTEPSA</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <span id="admin-name" class="text-sm text-gray-700"></span>
+            <button onclick="cerrarSesion()" class="text-sm text-[#cf152d] hover:text-[#cf152d]/80 transition-colors">
+              Cerrar Sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="p-2 bg-blue-100 rounded-lg">
+              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Total Usuarios</p>
+              <p id="total-usuarios" class="text-2xl font-semibold text-gray-900">-</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="p-2 bg-green-100 rounded-lg">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Certificados Pagados</p>
+              <p id="certificados-pagados" class="text-2xl font-semibold text-gray-900">-</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="p-2 bg-orange-100 rounded-lg">
+              <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Pagos Pendientes</p>
+              <p id="pagos-pendientes" class="text-2xl font-semibold text-gray-900">-</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search and Filters -->
+      <div class="bg-white rounded-lg shadow mb-6">
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <h2 class="text-lg font-semibold text-gray-900">Gestión de Participaciones</h2>
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+              <div class="relative">
+                <input
+                  type="text"
+                  id="search-input"
+                  placeholder="Buscar por nombre, usuario o evento..."
+                  class="w-full sm:w-64 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200"
+                />
+                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+              <select id="filter-estado" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200">
+                <option value="">Todos los estados</option>
+                <option value="pagado">Pagado</option>
+                <option value="pendiente">Pendiente</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Usuario
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Evento
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Nro. Certificado
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Estado de Pago
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody id="table-body" class="bg-white divide-y divide-gray-200">
+              <!-- Los datos se cargarán dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="loading-state" class="hidden p-8 text-center">
+          <div class="inline-flex items-center space-x-2">
+            <svg class="animate-spin h-5 w-5 text-[#cf152d]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-gray-600">Cargando datos...</span>
+          </div>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden p-8 text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No se encontraron participaciones</h3>
+          <p class="mt-1 text-sm text-gray-500">Intenta ajustar los filtros de búsqueda.</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toaster de Sonner -->
+    <SonnerToaster client:only="react" />
+
+    <script>
+      // Verificar sesión al cargar la página
+      document.addEventListener('DOMContentLoaded', function() {
+        verificarSesionAdmin();
+      });
+
+      // Función para verificar sesión de administrador
+      function verificarSesionAdmin() {
+        const adminSession = localStorage.getItem('adminSession');
+        if (!adminSession) {
+          window.location.href = '/';
+          return;
+        }
+
+        try {
+          const sessionData = JSON.parse(adminSession);
+          if (!sessionData.isAdmin || !sessionData.adminVerified) {
+            window.location.href = '/';
+            return;
+          }
+
+          // Mostrar nombre del administrador
+          const adminName = document.getElementById('admin-name');
+          if (adminName && sessionData.user) {
+            adminName.textContent = `${sessionData.user.nombre} ${sessionData.user.apellido}`;
+          }
+
+          // Cargar datos
+          cargarEstadisticas();
+          cargarParticipaciones();
+        } catch (error) {
+          console.error('Error al verificar sesión:', error);
+          window.location.href = '/';
+        }
+      }
+
+      // Función para cerrar sesión
+      window.cerrarSesion = function() {
+        localStorage.removeItem('adminSession');
+        window.location.href = '/';
+      }
+
+      // Función para cargar estadísticas
+      async function cargarEstadisticas() {
+        try {
+          const sessionData = JSON.parse(localStorage.getItem('adminSession'));
+          const response = await fetch('/backend/src/admin.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'obtener_estadisticas',
+              admin_user_id: sessionData.user.id
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            // Actualizar estadísticas
+            document.getElementById('total-usuarios').textContent = data.total_participaciones || 0;
+            
+            const pagados = data.estadisticas.find(s => s.estado_pago === 'pagado')?.cantidad || 0;
+            const pendientes = data.estadisticas.find(s => s.estado_pago === 'pendiente')?.cantidad || 0;
+            
+            document.getElementById('certificados-pagados').textContent = pagados;
+            document.getElementById('pagos-pendientes').textContent = pendientes;
+          }
+        } catch (error) {
+          console.error('Error al cargar estadísticas:', error);
+        }
+      }
+
+      // Función para cargar participaciones
+      async function cargarParticipaciones() {
+        try {
+          mostrarLoading();
+          
+          const sessionData = JSON.parse(localStorage.getItem('adminSession'));
+          const response = await fetch('/backend/src/admin.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'obtener_participaciones',
+              admin_user_id: sessionData.user.id
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            mostrarParticipaciones(data.participaciones);
+          } else {
+            mostrarEmptyState();
+          }
+        } catch (error) {
+          console.error('Error al cargar participaciones:', error);
+          mostrarEmptyState();
+        }
+      }
+
+      // Función para mostrar loading
+      function mostrarLoading() {
+        document.getElementById('loading-state').classList.remove('hidden');
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('table-body').innerHTML = '';
+      }
+
+      // Función para mostrar estado vacío
+      function mostrarEmptyState() {
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('empty-state').classList.remove('hidden');
+        document.getElementById('table-body').innerHTML = '';
+      }
+
+      // Función para mostrar participaciones
+      function mostrarParticipaciones(participaciones) {
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('empty-state').classList.add('hidden');
+        
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+
+        if (participaciones.length === 0) {
+          mostrarEmptyState();
+          return;
+        }
+
+        participaciones.forEach(participacion => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-gray-50';
+          
+          const estadoColor = participacion.estado_pago === 'pagado' ? 'text-green-600' : 'text-orange-600';
+          const estadoBg = participacion.estado_pago === 'pagado' ? 'bg-green-100' : 'bg-orange-100';
+          
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10">
+                  <div class="h-10 w-10 rounded-full bg-[#cf152d]/10 flex items-center justify-center">
+                    <span class="text-sm font-medium text-[#cf152d]">
+                      ${participacion.nombre.charAt(0)}${participacion.apellido.charAt(0)}
+                    </span>
+                  </div>
+                </div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900">
+                    ${participacion.nombre} ${participacion.apellido}
+                  </div>
+                  <div class="text-sm text-gray-500">${participacion.usuario}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              ${participacion.nombre_evento}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              ${participacion.nro_certificado}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${estadoBg} ${estadoColor}">
+                ${participacion.estado_pago}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <button onclick="cambiarEstadoPago(${participacion.id}, '${participacion.estado_pago}')" 
+                      class="text-[#cf152d] hover:text-[#cf152d]/80 transition-colors">
+                Cambiar Estado
+              </button>
+            </td>
+          `;
+          
+          tbody.appendChild(row);
+        });
+      }
+
+      // Función para cambiar estado de pago
+      window.cambiarEstadoPago = async function(participacionId, estadoActual) {
+        const nuevoEstado = estadoActual === 'pagado' ? 'pendiente' : 'pagado';
+        
+        try {
+          const sessionData = JSON.parse(localStorage.getItem('adminSession'));
+          const response = await fetch('/backend/src/admin.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'actualizar_estado_pago',
+              admin_user_id: sessionData.user.id,
+              participacion_id: participacionId,
+              estado_pago: nuevoEstado
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            if (window.showToast) {
+              await window.showToast.success('Estado de pago actualizado correctamente');
+            }
+            cargarParticipaciones();
+            cargarEstadisticas();
+          } else {
+            if (window.showToast) {
+              await window.showToast.error(data.message || 'Error al actualizar estado');
+            }
+          }
+        } catch (error) {
+          console.error('Error al cambiar estado:', error);
+          if (window.showToast) {
+            await window.showToast.error('Error al actualizar estado de pago');
+          }
+        }
+      }
+
+      // Búsqueda y filtros
+      document.getElementById('search-input').addEventListener('input', function() {
+        // Implementar búsqueda en tiempo real
+        filtrarParticipaciones();
+      });
+
+      document.getElementById('filter-estado').addEventListener('change', function() {
+        filtrarParticipaciones();
+      });
+
+      function filtrarParticipaciones() {
+        // Implementar filtrado de participaciones
+        // Por ahora recargamos todos los datos
+        cargarParticipaciones();
+      }
+    </script>
+  </body>
+</html> 

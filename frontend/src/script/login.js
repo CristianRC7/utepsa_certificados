@@ -56,8 +56,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     // Guardar el ID del usuario
                     usuarioActualId = data.user.id;
-                    // Obtener certificados del usuario
-                    await obtenerCertificados(data.user.id);
+                    
+                    // Verificar si es administrador
+                    if (data.user.is_admin) {
+                        // Mostrar modal de código de administrador
+                        if (window.mostrarModalAdmin) {
+                            window.mostrarModalAdmin(data.user);
+                        } else {
+                            // Si no está disponible el modal, redirigir directamente
+                            redirigirAlPanelAdmin(data.user);
+                        }
+                    } else {
+                        // Obtener certificados del usuario normal
+                        await obtenerCertificados(data.user.id);
+                    }
                 } else {
                     // Manejar diferentes tipos de error
                     let mensajeError = data.message || 'Error al iniciar sesión';
@@ -182,6 +194,10 @@ function generarHTMLModal() {
     `;
     
     certificadosPagina.forEach(certificado => {
+        const isPagado = certificado.estado_pago === 'pagado';
+        const estadoColor = isPagado ? 'text-green-600' : 'text-orange-600';
+        const estadoTexto = isPagado ? 'Pagado' : 'Pendiente';
+        
         html += `
             <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                 <div class="flex flex-col space-y-3">
@@ -194,15 +210,28 @@ function generarHTMLModal() {
                         <div class="flex-1">
                             <h4 class="font-medium text-gray-900">${certificado.nombre_evento}</h4>
                             <p class="text-sm text-gray-600 mt-1">Nro. Certificado: ${certificado.nro_certificado}</p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs font-medium ${estadoColor} bg-${isPagado ? 'green' : 'orange'}-100 px-2 py-1 rounded-full">
+                                    ${estadoTexto}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <button onclick="descargarCertificado('${certificado.nro_certificado}')" 
-                            class="w-full bg-[#cf152d] text-white px-4 py-3 rounded-lg hover:bg-[#cf152d]/90 transition-colors cursor-pointer flex items-center justify-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3 3-3m-6 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <span>Descargar Certificado</span>
-                    </button>
+                    ${isPagado ? 
+                        `<button onclick="descargarCertificado('${certificado.nro_certificado}')" 
+                                class="w-full bg-[#cf152d] text-white px-4 py-3 rounded-lg hover:bg-[#cf152d]/90 transition-colors cursor-pointer flex items-center justify-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3 3-3m-6 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span>Descargar Certificado</span>
+                        </button>` :
+                        `<div class="w-full bg-gray-100 text-gray-500 px-4 py-3 rounded-lg flex items-center justify-center space-x-2 cursor-not-allowed">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <span>Pago Pendiente - No disponible para descarga</span>
+                        </div>`
+                    }
                 </div>
             </div>
         `;
@@ -278,46 +307,71 @@ window.cerrarModal = function() {
 // Función para descargar certificado
 window.descargarCertificado = async function(nroCertificado) {
     try {
-        // Obtener el ID del usuario del localStorage o de alguna variable global
-        // Por ahora, vamos a obtenerlo del primer certificado disponible
-        if (certificadosActuales.length > 0) {
-            // Buscar el certificado específico para obtener información adicional si es necesario
-            const certificado = certificadosActuales.find(cert => cert.nro_certificado === nroCertificado);
-            
-            // Mostrar toast de carga
-            if (window.showToast) {
-                await window.showToast.info('Generando certificado...');
-            }
-            
-            // Construir la URL de descarga
-            const downloadUrl = `${Config.getDownloadUrl()}?userId=${usuarioActualId}&certificateId=${nroCertificado}`;
-            
-            // Crear un enlace temporal y hacer clic en él para descargar
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = `certificado_${nroCertificado}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Mostrar toast de éxito con el nombre del evento
-            if (window.showToast) {
-                await window.showToast.success(`Certificado del evento ${certificado.nombre_evento} descargado exitosamente`);
-            }
-        } else {
+        // Verificar si el certificado está pagado antes de intentar descargar
+        const certificado = certificadosActuales.find(cert => cert.nro_certificado === nroCertificado);
+        
+        if (!certificado) {
             if (window.showToast) {
                 await window.showToast.error('No se pudo obtener información del certificado');
             } else {
                 alert('No se pudo obtener información del certificado');
             }
+            return;
+        }
+
+        // Verificar estado de pago
+        if (certificado.estado_pago !== 'pagado') {
+            if (window.showToast) {
+                await window.showToast.warning('Este certificado tiene pago pendiente. No se puede descargar.');
+            } else {
+                alert('Este certificado tiene pago pendiente. No se puede descargar.');
+            }
+            return;
+        }
+        
+        // Mostrar toast de carga
+        if (window.showToast) {
+            await window.showToast.info('Generando certificado...');
+        }
+        
+        // Construir la URL de descarga
+        const downloadUrl = `${Config.getDownloadUrl()}?userId=${usuarioActualId}&certificateId=${nroCertificado}`;
+        
+        // Hacer la petición para verificar si hay errores
+        const response = await fetch(downloadUrl);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error al descargar el certificado');
+        }
+        
+        // Si la respuesta es exitosa, proceder con la descarga
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        // Crear un enlace temporal y hacer clic en él para descargar
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `certificado_${certificado.nombre_evento.replace(/\s+/g, '_')}_${nroCertificado}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Limpiar la URL del objeto
+        window.URL.revokeObjectURL(url);
+        
+        // Mostrar toast de éxito con el nombre del evento
+        if (window.showToast) {
+            await window.showToast.success(`Certificado del evento ${certificado.nombre_evento} descargado exitosamente`);
         }
     } catch (error) {
-        if (window.showToast) {
-            await window.showToast.error('Error al descargar el certificado');
-        } else {
-            alert('Error al descargar el certificado');
-        }
         console.error('Error al descargar certificado:', error);
+        
+        if (window.showToast) {
+            await window.showToast.error(error.message || 'Error al descargar el certificado');
+        } else {
+            alert(error.message || 'Error al descargar el certificado');
+        }
     }
 }
 
@@ -343,4 +397,20 @@ function restaurarBoton(button, originalText) {
     button.disabled = false;
     button.innerHTML = originalText;
     button.classList.remove('opacity-75', 'cursor-not-allowed');
+}
+
+// Función para redirigir al panel de administración
+function redirigirAlPanelAdmin(userData) {
+    // Guardar sesión de administrador en localStorage
+    const adminSession = {
+        user: userData,
+        isAdmin: true,
+        adminVerified: true,
+        timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem('adminSession', JSON.stringify(adminSession));
+    
+    // Redirigir al panel de administración
+    window.location.href = '/admin';
 }

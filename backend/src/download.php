@@ -66,6 +66,7 @@ try {
                 u.nombre,
                 u.apellido,
                 p.nro_certificado,
+                p.estado_pago,
                 e.nombre_evento,
                 e.imagen_certificado
               FROM usuarios u
@@ -82,6 +83,13 @@ try {
     if (!$result) {
         http_response_code(404);
         echo json_encode(['success' => false, 'message' => 'Certificado no encontrado']);
+        exit;
+    }
+
+    // Verificar estado de pago
+    if ($result['estado_pago'] !== 'pagado') {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'El certificado tiene pago pendiente. No se puede descargar.']);
         exit;
     }
 

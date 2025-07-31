@@ -1,0 +1,64 @@
+---
+// Modal para código de administrador
+---
+<div id="modal-admin" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <h3 class="text-xl font-semibold text-gray-900">Acceso Administrador</h3>
+      <button onclick="cerrarModalAdmin()" class="text-gray-400 hover:text-gray-600 cursor-pointer">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Content -->
+    <div class="p-6">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-[#cf152d]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-[#cf152d]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+        </div>
+        <h4 class="text-lg font-medium text-gray-900 mb-2">Verificación de Seguridad</h4>
+        <p class="text-gray-600 text-sm">Ingresa tu código de administrador para acceder al panel de control</p>
+      </div>
+      
+      <form id="form-admin-code" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Código de Administrador
+          </label>
+          <div class="relative">
+            <input
+              type="password"
+              id="admin-code"
+              name="admin-code"
+              class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200"
+              placeholder="Ingresa tu código"
+              maxlength="32"
+            />
+            <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+          </div>
+        </div>
+        
+        <button
+          type="submit"
+          id="btn-admin-submit"
+          class="w-full bg-gradient-to-r from-[#cf152d] to-[#cf152d]/90 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+        >
+          Verificar Código
+        </button>
+      </form>
+      
+      <div class="mt-4 text-center">
+        <p class="text-xs text-gray-500">
+          Este código es requerido para acceder a funciones administrativas
+        </p>
+      </div>
+    </div>
+  </div>
+</div> 
