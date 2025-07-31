@@ -43,6 +43,37 @@ class Admin {
         }
     }
 
+    // Obtener todos los usuarios
+    public function obtenerTodosUsuarios() {
+        try {
+            $query = "SELECT 
+                        u.id,
+                        u.nombre,
+                        u.apellido,
+                        u.usuario,
+                        CASE WHEN a.id IS NOT NULL THEN 1 ELSE 0 END as es_admin
+                      FROM usuarios u
+                      LEFT JOIN administradores a ON u.id = a.usuario_id AND a.activo = 1
+                      ORDER BY u.apellido, u.nombre ASC";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            
+            $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return array(
+                "success" => true,
+                "usuarios" => $usuarios,
+                "total" => count($usuarios)
+            );
+        } catch(PDOException $e) {
+            return array(
+                "success" => false,
+                "message" => "Error en la base de datos: " . $e->getMessage()
+            );
+        }
+    }
+
     // Verificar código de administrador
     public function verificarCodigoAdmin($usuario_id, $codigo) {
         try {
@@ -135,6 +166,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Procesar acciones según el tipo
         switch ($data['action']) {
+            case 'obtener_usuarios':
+                $result = $admin->obtenerTodosUsuarios();
+                break;
+                
             case 'verificar_codigo_admin':
                 if (!isset($data['admin_user_id']) || !isset($data['codigo'])) {
                     http_response_code(400);
