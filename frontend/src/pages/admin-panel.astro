@@ -1,0 +1,46 @@
+---
+import "../styles/global.css";
+import AdminPanelComponent from "./AdminPanel.jsx";
+import SonnerToaster from "../components/SonnerToaster.jsx";
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Panel de Administración - UTEPSA</title>
+  </head>
+  <body>
+    <AdminPanelComponent client:load />
+    <SonnerToaster client:only="react" />
+
+    <script>
+      // Verificar sesión al cargar la página
+      document.addEventListener('DOMContentLoaded', function() {
+        verificarSesionAdmin();
+      });
+
+      // Función para verificar sesión de administrador
+      function verificarSesionAdmin() {
+        const adminSession = localStorage.getItem('adminSession');
+        if (!adminSession) {
+          window.location.href = '/';
+          return;
+        }
+
+        try {
+          const sessionData = JSON.parse(adminSession);
+          if (!sessionData.isAdmin || !sessionData.adminVerified) {
+            window.location.href = '/';
+            return;
+          }
+        } catch (error) {
+          console.error('Error al verificar sesión:', error);
+          window.location.href = '/';
+        }
+      }
+    </script>
+  </body>
+</html> 

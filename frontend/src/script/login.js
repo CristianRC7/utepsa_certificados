@@ -412,5 +412,5 @@ function redirigirAlPanelAdmin(userData) {
     localStorage.setItem('adminSession', JSON.stringify(adminSession));
     
     // Redirigir al panel de administración
-    window.location.href = '/admin';
+    window.location.href = '/admin-panel';
 }

@@ -58,7 +58,7 @@ async function verificarCodigoAdmin(codigo) {
 }
 
 // Función para redirigir al panel de administración
-function redirigirAlPanel() {
+function redirigirAlPanelAdmin() {
     // Guardar sesión de administrador en localStorage
     const adminSession = {
         user: adminUserData,
@@ -70,7 +70,7 @@ function redirigirAlPanel() {
     localStorage.setItem('adminSession', JSON.stringify(adminSession));
     
     // Redirigir al panel de administración
-    window.location.href = '/admin';
+    window.location.href = '/admin-panel';
 }
 
 // Manejar el formulario de código de administrador
@@ -109,10 +109,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         await window.showToast.success('Código verificado correctamente');
                     }
                     
-                    // Cerrar modal y redirigir
+                    // Cerrar modal y redirigir al panel
                     setTimeout(() => {
                         cerrarModalAdmin();
-                        redirigirAlPanel();
+                        redirigirAlPanelAdmin();
                     }, 1000);
                 } else {
                     if (window.showToast) {
