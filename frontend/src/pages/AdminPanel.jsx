@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Config from '../utils/Config.js';
-import { Edit, Trash2, Eye, Settings, Shield } from 'lucide-react';
+import { Edit, Trash2, Eye, Settings, Shield, Plus } from 'lucide-react';
+import Modal from '../components/Modal.jsx';
+import ModalParticipaciones from '../components/ModalParticipaciones.jsx';
 
 const AdminPanelComponent = () => {
   const [usuarios, setUsuarios] = useState([]);
@@ -9,6 +11,10 @@ const AdminPanelComponent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filtro, setFiltro] = useState('todos');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('add');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [modalParticipacionesOpen, setModalParticipacionesOpen] = useState(false);
 
   useEffect(() => {
     cargarUsuarios();
@@ -79,18 +85,20 @@ const AdminPanelComponent = () => {
   };
 
   const handleEditar = (usuario) => {
-    console.log('Editar usuario:', usuario);
-    // Aquí irá la lógica para editar usuario
+    setSelectedUser(usuario);
+    setModalMode('edit');
+    setModalOpen(true);
   };
 
   const handleEliminar = (usuario) => {
-    console.log('Eliminar usuario:', usuario);
-    // Aquí irá la lógica para eliminar usuario
+    setSelectedUser(usuario);
+    setModalMode('delete');
+    setModalOpen(true);
   };
 
   const handleVerParticipaciones = (usuario) => {
-    console.log('Ver participaciones de:', usuario);
-    // Aquí irá la lógica para ver participaciones
+    setSelectedUser(usuario);
+    setModalParticipacionesOpen(true);
   };
 
   const handleVerOpcionesAdmin = (usuario) => {
@@ -101,6 +109,103 @@ const AdminPanelComponent = () => {
   const handleDarAdmin = (usuario) => {
     console.log('Dar admin a:', usuario);
     // Aquí irá la lógica para dar permisos de administrador
+  };
+
+  const handleAgregarUsuario = () => {
+    setSelectedUser(null);
+    setModalMode('add');
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleCloseModalParticipaciones = () => {
+    setModalParticipacionesOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleSaveUser = async (formData) => {
+    try {
+      const adminSession = localStorage.getItem('adminSession');
+      const sessionData = JSON.parse(adminSession);
+      
+      const response = await fetch(Config.getAdminUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: modalMode === 'add' ? 'agregar_usuario' : 'editar_usuario',
+          admin_user_id: sessionData.user.id,
+          user_data: formData,
+          user_id: modalMode === 'edit' ? selectedUser.id : null
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Recargar la lista de usuarios
+        await cargarUsuarios();
+        if (window.showToast) {
+          await window.showToast.success(data.message || 'Usuario guardado correctamente');
+        }
+      } else {
+        if (window.showToast) {
+          await window.showToast.error(data.message || 'Error al guardar usuario');
+        }
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Error al guardar usuario:', error);
+      if (window.showToast) {
+        await window.showToast.error('Error al guardar usuario');
+      }
+      throw error;
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      const adminSession = localStorage.getItem('adminSession');
+      const sessionData = JSON.parse(adminSession);
+      
+      const response = await fetch(Config.getAdminUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'eliminar_usuario',
+          admin_user_id: sessionData.user.id,
+          user_id: userId
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Recargar la lista de usuarios
+        await cargarUsuarios();
+        if (window.showToast) {
+          await window.showToast.success(data.message || 'Usuario eliminado correctamente');
+        }
+      } else {
+        if (window.showToast) {
+          await window.showToast.error(data.message || 'Error al eliminar usuario');
+        }
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Error al eliminar usuario:', error);
+      if (window.showToast) {
+        await window.showToast.error('Error al eliminar usuario');
+      }
+      throw error;
+    }
   };
 
   if (loading) {
@@ -189,29 +294,36 @@ const AdminPanelComponent = () => {
 
         {/* Filter and Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-              <h2 className="text-lg font-semibold text-gray-900">Lista de Usuarios</h2>
-              <div className="flex items-center space-x-4">
-                <label htmlFor="filtro" className="text-sm font-medium text-gray-700">
-                  Filtrar por:
-                </label>
-                <select
-                  id="filtro"
-                  value={filtro}
-                  onChange={(e) => setFiltro(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200 text-sm"
-                >
-                  <option value="todos">Todos los usuarios</option>
-                  <option value="administradores">Solo administradores</option>
-                  <option value="usuarios">Solo usuarios</option>
-                </select>
-                <span className="text-sm text-gray-500">
-                  ({usuariosFiltrados.length} de {totalUsuarios})
-                </span>
-              </div>
-            </div>
-          </div>
+                     <div className="px-6 py-4 border-b border-gray-200">
+             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+               <h2 className="text-lg font-semibold text-gray-900">Lista de Usuarios</h2>
+               <div className="flex items-center space-x-4">
+                 <button
+                   onClick={handleAgregarUsuario}
+                   className="bg-[#cf152d] text-white px-4 py-2 rounded-lg hover:bg-[#cf152d]/90 transition-colors cursor-pointer flex items-center space-x-2"
+                 >
+                   <Plus size={16} />
+                   <span>Agregar Usuario</span>
+                 </button>
+                 <label htmlFor="filtro" className="text-sm font-medium text-gray-700">
+                   Filtrar por:
+                 </label>
+                 <select
+                   id="filtro"
+                   value={filtro}
+                   onChange={(e) => setFiltro(e.target.value)}
+                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200 text-sm"
+                 >
+                   <option value="todos">Todos los usuarios</option>
+                   <option value="administradores">Solo administradores</option>
+                   <option value="usuarios">Solo usuarios</option>
+                 </select>
+                 <span className="text-sm text-gray-500">
+                   ({usuariosFiltrados.length} de {totalUsuarios})
+                 </span>
+               </div>
+             </div>
+           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -272,13 +384,15 @@ const AdminPanelComponent = () => {
                          >
                            <Trash2 size={18} />
                          </button>
-                         <button
-                           onClick={() => handleVerParticipaciones(usuario)}
-                           className="text-green-600 hover:text-green-800 transition-colors p-1 rounded-md hover:bg-green-50 cursor-pointer"
-                           title="Ver participaciones"
-                         >
-                           <Eye size={18} />
-                         </button>
+                                                   {usuario.es_admin === 0 && (
+                            <button
+                              onClick={() => handleVerParticipaciones(usuario)}
+                              className="text-green-600 hover:text-green-800 transition-colors p-1 rounded-md hover:bg-green-50 cursor-pointer"
+                              title="Ver participaciones"
+                            >
+                              <Eye size={18} />
+                            </button>
+                          )}
                          {usuario.es_admin === 1 ? (
                            <button
                              onClick={() => handleVerOpcionesAdmin(usuario)}
@@ -318,10 +432,27 @@ const AdminPanelComponent = () => {
               </p>
             </div>
           )}
-        </div>
-      </main>
-    </div>
-  );
-};
+                 </div>
+       </main>
+
+       {/* Modal */}
+       <Modal
+         isOpen={modalOpen}
+         onClose={handleCloseModal}
+         mode={modalMode}
+         user={selectedUser}
+         onSave={handleSaveUser}
+         onDelete={handleDeleteUser}
+       />
+
+       {/* Modal Participaciones */}
+       <ModalParticipaciones
+         isOpen={modalParticipacionesOpen}
+         onClose={handleCloseModalParticipaciones}
+         user={selectedUser}
+       />
+     </div>
+   );
+ };
 
 export default AdminPanelComponent;
