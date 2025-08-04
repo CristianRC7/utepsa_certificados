@@ -9,6 +9,9 @@ const EventsPanelComponent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busqueda, setBusqueda] = useState('');
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [porPagina] = useState(15);
+  const [totalPaginas, setTotalPaginas] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -26,7 +29,7 @@ const EventsPanelComponent = () => {
     filtrarEventos();
   }, [eventos, busqueda]);
 
-  const cargarEventos = async () => {
+  const cargarEventos = async (pagina = paginaActual) => {
     try {
       setLoading(true);
       const adminSession = localStorage.getItem('adminSession');
@@ -43,7 +46,9 @@ const EventsPanelComponent = () => {
         },
         body: JSON.stringify({
           action: 'obtener_eventos',
-          admin_user_id: sessionData.user.id
+          admin_user_id: sessionData.user.id,
+          pagina: pagina,
+          por_pagina: porPagina
         })
       });
 
@@ -52,6 +57,8 @@ const EventsPanelComponent = () => {
       if (data.success) {
         setEventos(data.eventos);
         setTotalEventos(data.total);
+        setPaginaActual(data.pagina_actual);
+        setTotalPaginas(data.total_paginas);
       } else {
         setError(data.message || 'Error al cargar eventos');
       }
@@ -139,6 +146,70 @@ const EventsPanelComponent = () => {
     setSelectedEvent(null);
     setSelectedFile(null);
     setFileName('');
+  };
+
+  const handleCambiarPagina = (nuevaPagina) => {
+    if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
+      setPaginaActual(nuevaPagina);
+      cargarEventos(nuevaPagina);
+    }
+  };
+
+  const generarBotonesPaginacion = () => {
+    const botones = [];
+    const maxBotones = 5;
+    
+    let inicio = Math.max(1, paginaActual - Math.floor(maxBotones / 2));
+    let fin = Math.min(totalPaginas, inicio + maxBotones - 1);
+    
+    if (fin - inicio + 1 < maxBotones) {
+      inicio = Math.max(1, fin - maxBotones + 1);
+    }
+    
+    // Botón "Anterior"
+    if (paginaActual > 1) {
+      botones.push(
+        <button
+          key="prev"
+          onClick={() => handleCambiarPagina(paginaActual - 1)}
+          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50"
+        >
+          Anterior
+        </button>
+      );
+    }
+    
+    // Botones de páginas
+    for (let i = inicio; i <= fin; i++) {
+      botones.push(
+        <button
+          key={i}
+          onClick={() => handleCambiarPagina(i)}
+          className={`px-3 py-2 text-sm font-medium border ${
+            i === paginaActual
+              ? 'bg-[#cf152d] text-white border-[#cf152d]'
+              : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+    
+    // Botón "Siguiente"
+    if (paginaActual < totalPaginas) {
+      botones.push(
+        <button
+          key="next"
+          onClick={() => handleCambiarPagina(paginaActual + 1)}
+          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50"
+        >
+          Siguiente
+        </button>
+      );
+    }
+    
+    return botones;
   };
 
   const handleDeleteImage = async (evento) => {
@@ -442,6 +513,24 @@ const EventsPanelComponent = () => {
               <p className="mt-1 text-sm text-gray-500">
                 {busqueda ? `No hay eventos que coincidan con "${busqueda}".` : 'No hay eventos registrados en el sistema.'}
               </p>
+            </div>
+          )}
+          
+          {/* Paginación */}
+          {totalPaginas > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Mostrando <span className="font-medium">{((paginaActual - 1) * porPagina) + 1}</span> a{' '}
+                  <span className="font-medium">
+                    {Math.min(paginaActual * porPagina, totalEventos)}
+                  </span>{' '}
+                  de <span className="font-medium">{totalEventos}</span> eventos
+                </div>
+                <div className="flex space-x-1">
+                  {generarBotonesPaginacion()}
+                </div>
+              </div>
             </div>
           )}
         </div>

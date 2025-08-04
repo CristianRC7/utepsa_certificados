@@ -43,9 +43,20 @@ class Admin {
         }
     }
 
-    // Obtener todos los usuarios
-    public function obtenerTodosUsuarios() {
+    // Obtener todos los usuarios con paginación
+    public function obtenerTodosUsuarios($pagina = 1, $porPagina = 15) {
         try {
+            // Calcular offset
+            $offset = ($pagina - 1) * $porPagina;
+            
+            // Obtener total de usuarios
+            $queryTotal = "SELECT COUNT(*) as total FROM usuarios";
+            $stmtTotal = $this->conn->prepare($queryTotal);
+            $stmtTotal->execute();
+            $totalResult = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+            $total = $totalResult['total'];
+            
+            // Obtener usuarios paginados
             $query = "SELECT 
                         u.id,
                         u.nombre,
@@ -54,9 +65,12 @@ class Admin {
                         CASE WHEN a.id IS NOT NULL THEN 1 ELSE 0 END as es_admin
                       FROM usuarios u
                       LEFT JOIN administradores a ON u.id = a.usuario_id AND a.activo = 1
-                      ORDER BY u.apellido, u.nombre ASC";
+                      ORDER BY u.apellido, u.nombre ASC
+                      LIMIT :limit OFFSET :offset";
             
             $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":limit", $porPagina, PDO::PARAM_INT);
+            $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
             $stmt->execute();
             
             $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -64,7 +78,10 @@ class Admin {
             return array(
                 "success" => true,
                 "usuarios" => $usuarios,
-                "total" => count($usuarios)
+                "total" => $total,
+                "pagina_actual" => $pagina,
+                "por_pagina" => $porPagina,
+                "total_paginas" => ceil($total / $porPagina)
             );
         } catch(PDOException $e) {
             return array(
@@ -611,17 +628,31 @@ class Admin {
         }
     }
 
-    // Obtener todos los eventos
-    public function obtenerTodosEventos() {
+    // Obtener todos los eventos con paginación
+    public function obtenerTodosEventos($pagina = 1, $porPagina = 15) {
         try {
+            // Calcular offset
+            $offset = ($pagina - 1) * $porPagina;
+            
+            // Obtener total de eventos
+            $queryTotal = "SELECT COUNT(*) as total FROM eventos";
+            $stmtTotal = $this->conn->prepare($queryTotal);
+            $stmtTotal->execute();
+            $totalResult = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+            $total = $totalResult['total'];
+            
+            // Obtener eventos paginados
             $query = "SELECT 
                         id,
                         nombre_evento,
                         imagen_certificado
                       FROM eventos
-                      ORDER BY nombre_evento ASC";
+                      ORDER BY nombre_evento ASC
+                      LIMIT :limit OFFSET :offset";
             
             $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":limit", $porPagina, PDO::PARAM_INT);
+            $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
             $stmt->execute();
             
             $eventos = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -629,7 +660,10 @@ class Admin {
             return array(
                 "success" => true,
                 "eventos" => $eventos,
-                "total" => count($eventos)
+                "total" => $total,
+                "pagina_actual" => $pagina,
+                "por_pagina" => $porPagina,
+                "total_paginas" => ceil($total / $porPagina)
             );
         } catch(PDOException $e) {
             return array(
@@ -971,7 +1005,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Procesar acciones según el tipo
         switch ($data['action']) {
             case 'obtener_usuarios':
-                $result = $admin->obtenerTodosUsuarios();
+                $pagina = isset($data['pagina']) ? (int)$data['pagina'] : 1;
+                $porPagina = isset($data['por_pagina']) ? (int)$data['por_pagina'] : 15;
+                $result = $admin->obtenerTodosUsuarios($pagina, $porPagina);
                 break;
                 
             case 'agregar_usuario':
@@ -1095,7 +1131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'obtener_eventos':
-                $result = $admin->obtenerTodosEventos();
+                $pagina = isset($data['pagina']) ? (int)$data['pagina'] : 1;
+                $porPagina = isset($data['por_pagina']) ? (int)$data['por_pagina'] : 15;
+                $result = $admin->obtenerTodosEventos($pagina, $porPagina);
                 break;
                 
             case 'agregar_evento':
