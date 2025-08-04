@@ -947,6 +947,218 @@ class Admin {
             );
         }
     }
+
+    // Subir usuarios desde archivo Excel/CSV
+    public function subirUsuariosDesdeArchivo($archivo) {
+        try {
+            // Validar archivo
+            if (!$archivo || $archivo['error'] !== UPLOAD_ERR_OK) {
+                return array(
+                    "success" => false,
+                    "message" => "Error al subir el archivo"
+                );
+            }
+
+            $allowedTypes = [
+                'text/csv',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ];
+            
+            if (!in_array($archivo['type'], $allowedTypes)) {
+                return array(
+                    "success" => false,
+                    "message" => "Solo se permiten archivos CSV y Excel (.xls, .xlsx)"
+                );
+            }
+
+            $maxSize = 5 * 1024 * 1024; // 5MB
+            if ($archivo['size'] > $maxSize) {
+                return array(
+                    "success" => false,
+                    "message" => "El archivo es demasiado grande. Máximo 5MB"
+                );
+            }
+
+            // Procesar archivo según su tipo
+            $datos = array();
+            $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+            
+            if ($extension === 'csv') {
+                $datos = $this->procesarCSV($archivo['tmp_name']);
+            } else {
+                $datos = $this->procesarExcel($archivo['tmp_name']);
+            }
+
+            if (!$datos['success']) {
+                return $datos;
+            }
+
+            // Validar estructura de datos
+            $usuarios = $datos['data'];
+            $errores = array();
+            $exitosos = 0;
+            $duplicados = 0;
+
+            foreach ($usuarios as $index => $usuario) {
+                $fila = $index + 2; // +2 porque la primera fila es el header y los arrays empiezan en 0
+                
+                // Validar campos requeridos
+                if (empty($usuario['nombre']) || empty($usuario['apellido']) || 
+                    empty($usuario['usuario']) || empty($usuario['contrasena'])) {
+                    $errores[] = "Fila $fila: Todos los campos son requeridos";
+                    continue;
+                }
+
+                // Validar longitud de campos
+                if (strlen($usuario['nombre']) > 100 || strlen($usuario['apellido']) > 100) {
+                    $errores[] = "Fila $fila: Nombre y apellido no pueden exceder 100 caracteres";
+                    continue;
+                }
+
+                if (strlen($usuario['usuario']) > 50) {
+                    $errores[] = "Fila $fila: Usuario no puede exceder 50 caracteres";
+                    continue;
+                }
+
+                // Verificar si el usuario ya existe
+                $queryCheck = "SELECT COUNT(*) as existe FROM usuarios WHERE usuario = :usuario";
+                $stmtCheck = $this->conn->prepare($queryCheck);
+                $stmtCheck->bindParam(":usuario", $usuario['usuario'], PDO::PARAM_STR);
+                $stmtCheck->execute();
+                $result = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+                if ($result['existe'] > 0) {
+                    $duplicados++;
+                    continue;
+                }
+
+                // Insertar usuario
+                try {
+                    $query = "INSERT INTO usuarios (nombre, apellido, usuario, contrasena) VALUES (:nombre, :apellido, :usuario, :contrasena)";
+                    $stmt = $this->conn->prepare($query);
+                    $stmt->bindParam(":nombre", $usuario['nombre'], PDO::PARAM_STR);
+                    $stmt->bindParam(":apellido", $usuario['apellido'], PDO::PARAM_STR);
+                    $stmt->bindParam(":usuario", $usuario['usuario'], PDO::PARAM_STR);
+                    $contrasenaMD5 = md5($usuario['contrasena']);
+                    $stmt->bindParam(":contrasena", $contrasenaMD5, PDO::PARAM_STR);
+                    $stmt->execute();
+                    $exitosos++;
+                } catch (PDOException $e) {
+                    $errores[] = "Fila $fila: Error al insertar usuario - " . $e->getMessage();
+                }
+            }
+
+            $mensaje = "Proceso completado. ";
+            if ($exitosos > 0) {
+                $mensaje .= "$exitosos usuarios agregados exitosamente. ";
+            }
+            if ($duplicados > 0) {
+                $mensaje .= "$duplicados usuarios duplicados omitidos. ";
+            }
+            if (count($errores) > 0) {
+                $mensaje .= count($errores) . " errores encontrados.";
+            }
+
+            return array(
+                "success" => true,
+                "message" => $mensaje,
+                "exitosos" => $exitosos,
+                "duplicados" => $duplicados,
+                "errores" => $errores
+            );
+
+        } catch (Exception $e) {
+            return array(
+                "success" => false,
+                "message" => "Error al procesar el archivo: " . $e->getMessage()
+            );
+        }
+    }
+
+    // Procesar archivo CSV
+    private function procesarCSV($archivo) {
+        try {
+            $datos = array();
+            $handle = fopen($archivo, 'r');
+            
+            if (!$handle) {
+                return array(
+                    "success" => false,
+                    "message" => "No se pudo abrir el archivo CSV"
+                );
+            }
+
+            // Leer header
+            $header = fgetcsv($handle);
+            if (!$header || count($header) < 4) {
+                fclose($handle);
+                return array(
+                    "success" => false,
+                    "message" => "El archivo CSV debe tener las columnas: nombre, apellido, usuario, contrasena"
+                );
+            }
+
+            // Normalizar nombres de columnas
+            $header = array_map('strtolower', array_map('trim', $header));
+            
+            // Verificar que las columnas requeridas estén presentes
+            $columnasRequeridas = ['nombre', 'apellido', 'usuario', 'contrasena'];
+            foreach ($columnasRequeridas as $columna) {
+                if (!in_array($columna, $header)) {
+                    fclose($handle);
+                    return array(
+                        "success" => false,
+                        "message" => "Columna requerida no encontrada: $columna"
+                    );
+                }
+            }
+
+            // Leer datos
+            $fila = 2; // Empezar en 2 porque la fila 1 es el header
+            while (($row = fgetcsv($handle)) !== false) {
+                if (count($row) >= 4) {
+                    $datos[] = array(
+                        'nombre' => trim($row[array_search('nombre', $header)]),
+                        'apellido' => trim($row[array_search('apellido', $header)]),
+                        'usuario' => trim($row[array_search('usuario', $header)]),
+                        'contrasena' => trim($row[array_search('contrasena', $header)])
+                    );
+                }
+                $fila++;
+            }
+
+            fclose($handle);
+
+            return array(
+                "success" => true,
+                "data" => $datos
+            );
+
+        } catch (Exception $e) {
+            return array(
+                "success" => false,
+                "message" => "Error al procesar CSV: " . $e->getMessage()
+            );
+        }
+    }
+
+    // Procesar archivo Excel
+    private function procesarExcel($archivo) {
+        try {
+            // Para Excel necesitaríamos una librería como PhpSpreadsheet
+            // Por ahora, retornamos error indicando que solo CSV está soportado
+            return array(
+                "success" => false,
+                "message" => "Soporte para Excel será implementado próximamente. Por favor use archivos CSV."
+            );
+        } catch (Exception $e) {
+            return array(
+                "success" => false,
+                "message" => "Error al procesar Excel: " . $e->getMessage()
+            );
+        }
+    }
 }
 
 // Manejar la solicitud
@@ -1190,6 +1402,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
                 $result = $admin->eliminarImagenEvento($data['evento_id']);
+                break;
+                
+            case 'subir_usuarios_archivo':
+                $archivo = isset($_FILES['archivo']) ? $_FILES['archivo'] : null;
+                $result = $admin->subirUsuariosDesdeArchivo($archivo);
                 break;
                 
             default:

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Config from '../utils/Config.js';
-import { Edit, Trash2, Eye, Settings, Shield, Plus, UserMinus, X } from 'lucide-react';
+import { Edit, Trash2, Eye, Settings, Shield, Plus, UserMinus, X, Upload, FileText } from 'lucide-react';
 import Modal from '../components/Modal.jsx';
 import ModalParticipaciones from '../components/ModalParticipaciones.jsx';
 
@@ -19,6 +19,10 @@ const AdminPanelComponent = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalParticipacionesOpen, setModalParticipacionesOpen] = useState(false);
   const [modalCodigoAdminOpen, setModalCodigoAdminOpen] = useState(false);
+  const [modalSubirArchivoOpen, setModalSubirArchivoOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileName, setFileName] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     cargarUsuarios();
@@ -221,6 +225,90 @@ const AdminPanelComponent = () => {
     setSelectedUser(null);
   };
 
+  const handleSubirArchivo = () => {
+    setModalSubirArchivoOpen(true);
+  };
+
+  const handleCloseModalSubirArchivo = () => {
+    setModalSubirArchivoOpen(false);
+    setSelectedFile(null);
+    setFileName('');
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validar tipo de archivo
+      const allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+      if (!allowedTypes.includes(file.type)) {
+        if (window.showToast) {
+          window.showToast.error('Solo se permiten archivos CSV y Excel (.xls, .xlsx)');
+        }
+        event.target.value = '';
+        return;
+      }
+      
+      // Validar tamaño (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        if (window.showToast) {
+          window.showToast.error('El archivo es demasiado grande. Máximo 5MB');
+        }
+        event.target.value = '';
+        return;
+      }
+      
+      setSelectedFile(file);
+      setFileName(file.name);
+    }
+  };
+
+  const handleUploadFile = async () => {
+    if (!selectedFile) {
+      if (window.showToast) {
+        window.showToast.error('Por favor selecciona un archivo');
+      }
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const adminSession = localStorage.getItem('adminSession');
+      const sessionData = JSON.parse(adminSession);
+      
+      // Crear FormData para enviar archivo
+      const formData = new FormData();
+      formData.append('action', 'subir_usuarios_archivo');
+      formData.append('admin_user_id', sessionData.user.id);
+      formData.append('archivo', selectedFile);
+      
+      const response = await fetch(Config.getAdminUrl(), {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        await cargarUsuarios();
+        if (window.showToast) {
+          await window.showToast.success(data.message);
+        }
+        handleCloseModalSubirArchivo();
+      } else {
+        if (window.showToast) {
+          await window.showToast.error(data.message);
+        }
+      }
+    } catch (error) {
+      console.error('Error al subir archivo:', error);
+      if (window.showToast) {
+        await window.showToast.error('Error al subir archivo');
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleCambiarPagina = (nuevaPagina) => {
     if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
       setPaginaActual(nuevaPagina);
@@ -245,7 +333,7 @@ const AdminPanelComponent = () => {
         <button
           key="prev"
           onClick={() => handleCambiarPagina(paginaActual - 1)}
-          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50"
+          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 cursor-pointer"
         >
           Anterior
         </button>
@@ -258,7 +346,7 @@ const AdminPanelComponent = () => {
         <button
           key={i}
           onClick={() => handleCambiarPagina(i)}
-          className={`px-3 py-2 text-sm font-medium border ${
+          className={`px-3 py-2 text-sm font-medium border cursor-pointer ${
             i === paginaActual
               ? 'bg-[#cf152d] text-white border-[#cf152d]'
               : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
@@ -275,7 +363,7 @@ const AdminPanelComponent = () => {
         <button
           key="next"
           onClick={() => handleCambiarPagina(paginaActual + 1)}
-          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50"
+          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 cursor-pointer"
         >
           Siguiente
         </button>
@@ -437,6 +525,13 @@ const AdminPanelComponent = () => {
                  >
                    <Plus size={16} />
                    <span>Agregar Usuario</span>
+                 </button>
+                 <button
+                   onClick={handleSubirArchivo}
+                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors cursor-pointer flex items-center space-x-2"
+                 >
+                   <Upload size={16} />
+                   <span>Subir Archivo</span>
                  </button>
                  <label htmlFor="filtro" className="text-sm font-medium text-gray-700">
                    Filtrar por:
@@ -672,6 +767,92 @@ const AdminPanelComponent = () => {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal para subir archivo de usuarios */}
+        {modalSubirArchivoOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">Subir Usuarios desde Archivo</h3>
+                </div>
+                <button
+                  onClick={handleCloseModalSubirArchivo}
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Seleccionar Archivo
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv,.xls,.xlsx"
+                      onChange={handleFileChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200"
+                    />
+                    {fileName && (
+                      <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg mt-2">
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span className="text-sm text-green-700">{fileName}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Formato requerido:</h4>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      <p>• Archivo CSV con las columnas: <strong>nombre, apellido, usuario, contrasena</strong></p>
+                      <p>• La primera fila debe ser el encabezado</p>
+                      <p>• Las contraseñas se encriptarán automáticamente</p>
+                      <p>• Usuarios duplicados serán omitidos</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={handleCloseModalSubirArchivo}
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleUploadFile}
+                      disabled={!selectedFile || uploading}
+                      className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    >
+                      {uploading ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Procesando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={16} />
+                          <span>Subir Archivo</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

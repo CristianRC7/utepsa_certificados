@@ -172,7 +172,7 @@ const EventsPanelComponent = () => {
         <button
           key="prev"
           onClick={() => handleCambiarPagina(paginaActual - 1)}
-          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50"
+          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 cursor-pointer"
         >
           Anterior
         </button>
@@ -185,7 +185,7 @@ const EventsPanelComponent = () => {
         <button
           key={i}
           onClick={() => handleCambiarPagina(i)}
-          className={`px-3 py-2 text-sm font-medium border ${
+          className={`px-3 py-2 text-sm font-medium border cursor-pointer ${
             i === paginaActual
               ? 'bg-[#cf152d] text-white border-[#cf152d]'
               : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
@@ -202,7 +202,7 @@ const EventsPanelComponent = () => {
         <button
           key="next"
           onClick={() => handleCambiarPagina(paginaActual + 1)}
-          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50"
+          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 cursor-pointer"
         >
           Siguiente
         </button>
@@ -718,14 +718,7 @@ const EventsPanelComponent = () => {
                 </div>
               </div>
               
-              <div className="mt-6 flex justify-center">
-                <button
-                  onClick={handleCloseModalImagen}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
-                >
-                  Cerrar
-                </button>
-              </div>
+
             </div>
           </div>
         </div>
