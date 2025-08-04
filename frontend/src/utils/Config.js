@@ -28,6 +28,11 @@ const Config = {
     // URL completa para admin
     getAdminUrl() {
         return this.API_BASE_URL + this.ENDPOINTS.ADMIN;
+    },
+    
+    // URL completa para imágenes de certificados
+    getCertificatesImageUrl(filename) {
+        return this.API_BASE_URL + 'certificates/' + filename;
     }
 };
 

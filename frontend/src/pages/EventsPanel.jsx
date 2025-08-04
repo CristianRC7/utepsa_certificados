@@ -96,7 +96,7 @@ const EventsPanelComponent = () => {
 
   const handleVerImagen = (evento) => {
     if (evento.imagen_certificado) {
-      setSelectedImagen(`http://localhost/utepsa_certificados/backend/src/certificates/${evento.imagen_certificado}`);
+      setSelectedImagen(Config.getCertificatesImageUrl(evento.imagen_certificado));
       setModalImagenOpen(true);
     }
   };
