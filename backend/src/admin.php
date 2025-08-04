@@ -610,6 +610,309 @@ class Admin {
             );
         }
     }
+
+    // Obtener todos los eventos
+    public function obtenerTodosEventos() {
+        try {
+            $query = "SELECT 
+                        id,
+                        nombre_evento,
+                        imagen_certificado
+                      FROM eventos
+                      ORDER BY nombre_evento ASC";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            
+            $eventos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return array(
+                "success" => true,
+                "eventos" => $eventos,
+                "total" => count($eventos)
+            );
+        } catch(PDOException $e) {
+            return array(
+                "success" => false,
+                "message" => "Error en la base de datos: " . $e->getMessage()
+            );
+        }
+    }
+
+    // Agregar un nuevo evento
+    public function agregarEvento($eventoData, $imagenFile = null) {
+        try {
+            // Validar datos requeridos
+            if (empty($eventoData['nombre_evento'])) {
+                return array(
+                    "success" => false,
+                    "message" => "El nombre del evento es requerido"
+                );
+            }
+
+            $imagen_certificado = null;
+            
+            // Procesar imagen si se subió
+            if ($imagenFile && $imagenFile['error'] === UPLOAD_ERR_OK) {
+                $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                $maxSize = 15 * 1024 * 1024; // 15MB
+                
+                // Validar tipo de archivo
+                if (!in_array($imagenFile['type'], $allowedTypes)) {
+                    return array(
+                        "success" => false,
+                        "message" => "Solo se permiten archivos PNG y JPG"
+                    );
+                }
+                
+                // Validar tamaño
+                if ($imagenFile['size'] > $maxSize) {
+                    return array(
+                        "success" => false,
+                        "message" => "El archivo es demasiado grande. Máximo 15MB"
+                    );
+                }
+                
+                // Generar nombre único para el archivo
+                $extension = pathinfo($imagenFile['name'], PATHINFO_EXTENSION);
+                $imagen_certificado = uniqid() . '_' . time() . '.' . $extension;
+                $uploadPath = __DIR__ . '/certificates/' . $imagen_certificado;
+                
+                // Crear directorio si no existe
+                if (!is_dir(__DIR__ . '/certificates/')) {
+                    mkdir(__DIR__ . '/certificates/', 0755, true);
+                }
+                
+                // Mover archivo
+                if (!move_uploaded_file($imagenFile['tmp_name'], $uploadPath)) {
+                    return array(
+                        "success" => false,
+                        "message" => "Error al subir el archivo"
+                    );
+                }
+            }
+
+            $query = "INSERT INTO eventos (nombre_evento, imagen_certificado) VALUES (:nombre_evento, :imagen_certificado)";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":nombre_evento", $eventoData['nombre_evento'], PDO::PARAM_STR);
+            $stmt->bindParam(":imagen_certificado", $imagen_certificado, PDO::PARAM_STR);
+            $stmt->execute();
+            
+            return array(
+                "success" => true,
+                "message" => "Evento agregado correctamente",
+                "id" => $this->conn->lastInsertId()
+            );
+            
+        } catch(PDOException $e) {
+            return array(
+                "success" => false,
+                "message" => "Error en la base de datos: " . $e->getMessage()
+            );
+        }
+    }
+
+    // Editar un evento existente
+    public function editarEvento($eventoData, $eventoId, $imagenFile = null) {
+        try {
+            // Validar datos requeridos
+            if (empty($eventoData['nombre_evento'])) {
+                return array(
+                    "success" => false,
+                    "message" => "El nombre del evento es requerido"
+                );
+            }
+
+            // Obtener imagen actual si existe
+            $queryCurrent = "SELECT imagen_certificado FROM eventos WHERE id = :id";
+            $stmtCurrent = $this->conn->prepare($queryCurrent);
+            $stmtCurrent->bindParam(":id", $eventoId, PDO::PARAM_INT);
+            $stmtCurrent->execute();
+            $currentEvent = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
+            
+            $imagen_certificado = $currentEvent['imagen_certificado'];
+            
+            // Procesar nueva imagen si se subió
+            if ($imagenFile && $imagenFile['error'] === UPLOAD_ERR_OK) {
+                $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                $maxSize = 15 * 1024 * 1024; // 15MB
+                
+                // Validar tipo de archivo
+                if (!in_array($imagenFile['type'], $allowedTypes)) {
+                    return array(
+                        "success" => false,
+                        "message" => "Solo se permiten archivos PNG y JPG"
+                    );
+                }
+                
+                // Validar tamaño
+                if ($imagenFile['size'] > $maxSize) {
+                    return array(
+                        "success" => false,
+                        "message" => "El archivo es demasiado grande. Máximo 15MB"
+                    );
+                }
+                
+                // Eliminar imagen anterior si existe
+                if ($currentEvent['imagen_certificado']) {
+                    $oldImagePath = __DIR__ . '/certificates/' . $currentEvent['imagen_certificado'];
+                    if (file_exists($oldImagePath)) {
+                        unlink($oldImagePath);
+                    }
+                }
+                
+                // Generar nombre único para el archivo
+                $extension = pathinfo($imagenFile['name'], PATHINFO_EXTENSION);
+                $imagen_certificado = uniqid() . '_' . time() . '.' . $extension;
+                $uploadPath = __DIR__ . '/certificates/' . $imagen_certificado;
+                
+                // Crear directorio si no existe
+                if (!is_dir(__DIR__ . '/certificates/')) {
+                    mkdir(__DIR__ . '/certificates/', 0755, true);
+                }
+                
+                // Mover archivo
+                if (!move_uploaded_file($imagenFile['tmp_name'], $uploadPath)) {
+                    return array(
+                        "success" => false,
+                        "message" => "Error al subir el archivo"
+                    );
+                }
+            }
+
+            $query = "UPDATE eventos SET nombre_evento = :nombre_evento, imagen_certificado = :imagen_certificado WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":nombre_evento", $eventoData['nombre_evento'], PDO::PARAM_STR);
+            $stmt->bindParam(":imagen_certificado", $imagen_certificado, PDO::PARAM_STR);
+            $stmt->bindParam(":id", $eventoId, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            if ($stmt->rowCount() > 0) {
+                return array(
+                    "success" => true,
+                    "message" => "Evento actualizado correctamente"
+                );
+            } else {
+                return array(
+                    "success" => false,
+                    "message" => "No se encontró el evento o no se realizaron cambios"
+                );
+            }
+            
+        } catch(PDOException $e) {
+            return array(
+                "success" => false,
+                "message" => "Error en la base de datos: " . $e->getMessage()
+            );
+        }
+    }
+
+    // Eliminar un evento
+    public function eliminarEvento($eventoId) {
+        try {
+            // Verificar si hay participaciones asociadas
+            $queryCheck = "SELECT COUNT(*) as total FROM participaciones WHERE evento_id = :evento_id";
+            $stmtCheck = $this->conn->prepare($queryCheck);
+            $stmtCheck->bindParam(":evento_id", $eventoId, PDO::PARAM_INT);
+            $stmtCheck->execute();
+            $result = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result['total'] > 0) {
+                return array(
+                    "success" => false,
+                    "message" => "No se puede eliminar el evento porque tiene participaciones asociadas"
+                );
+            }
+
+            // Obtener información de la imagen antes de eliminar
+            $queryImage = "SELECT imagen_certificado FROM eventos WHERE id = :id";
+            $stmtImage = $this->conn->prepare($queryImage);
+            $stmtImage->bindParam(":id", $eventoId, PDO::PARAM_INT);
+            $stmtImage->execute();
+            $evento = $stmtImage->fetch(PDO::FETCH_ASSOC);
+
+            // Eliminar el evento de la base de datos
+            $query = "DELETE FROM eventos WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":id", $eventoId, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            if ($stmt->rowCount() > 0) {
+                // Eliminar la imagen del servidor si existe
+                if ($evento && $evento['imagen_certificado']) {
+                    $imagePath = __DIR__ . '/certificates/' . $evento['imagen_certificado'];
+                    if (file_exists($imagePath)) {
+                        unlink($imagePath);
+                    }
+                }
+                
+                return array(
+                    "success" => true,
+                    "message" => "Evento eliminado correctamente"
+                );
+            } else {
+                return array(
+                    "success" => false,
+                    "message" => "No se encontró el evento"
+                );
+            }
+            
+        } catch(PDOException $e) {
+            return array(
+                "success" => false,
+                "message" => "Error en la base de datos: " . $e->getMessage()
+            );
+        }
+    }
+
+    // Eliminar solo la imagen de un evento
+    public function eliminarImagenEvento($eventoId) {
+        try {
+            // Obtener información de la imagen
+            $query = "SELECT imagen_certificado FROM eventos WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":id", $eventoId, PDO::PARAM_INT);
+            $stmt->execute();
+            $evento = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$evento) {
+                return array(
+                    "success" => false,
+                    "message" => "No se encontró el evento"
+                );
+            }
+            
+            if (!$evento['imagen_certificado']) {
+                return array(
+                    "success" => false,
+                    "message" => "El evento no tiene imagen asociada"
+                );
+            }
+            
+            // Eliminar la imagen del servidor
+            $imagePath = __DIR__ . '/certificates/' . $evento['imagen_certificado'];
+            if (file_exists($imagePath)) {
+                unlink($imagePath);
+            }
+            
+            // Actualizar la base de datos para eliminar la referencia
+            $queryUpdate = "UPDATE eventos SET imagen_certificado = NULL WHERE id = :id";
+            $stmtUpdate = $this->conn->prepare($queryUpdate);
+            $stmtUpdate->bindParam(":id", $eventoId, PDO::PARAM_INT);
+            $stmtUpdate->execute();
+            
+            return array(
+                "success" => true,
+                "message" => "Imagen eliminada correctamente"
+            );
+            
+        } catch(PDOException $e) {
+            return array(
+                "success" => false,
+                "message" => "Error en la base de datos: " . $e->getMessage()
+            );
+        }
+    }
 }
 
 // Manejar la solicitud
@@ -620,16 +923,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $admin = new Admin($db);
         
         // Obtener y validar datos del POST
-        $input = file_get_contents("php://input");
-        $data = json_decode($input, true);
+        $data = $_POST;
         
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            http_response_code(400);
-            echo json_encode(array(
-                "success" => false,
-                "message" => "Datos JSON inválidos"
-            ));
-            exit;
+        // Si no hay datos POST, intentar con JSON
+        if (empty($data)) {
+            $input = file_get_contents("php://input");
+            $data = json_decode($input, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode(array(
+                    "success" => false,
+                    "message" => "Datos inválidos"
+                ));
+                exit;
+            }
         }
         
         if (!isset($data['action'])) {
@@ -784,6 +1092,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
                 $result = $admin->verificarCodigoAdmin($data['admin_user_id'], $data['codigo']);
+                break;
+                
+            case 'obtener_eventos':
+                $result = $admin->obtenerTodosEventos();
+                break;
+                
+            case 'agregar_evento':
+                if (!isset($data['evento_data'])) {
+                    http_response_code(400);
+                    echo json_encode(array(
+                        "success" => false,
+                        "message" => "Datos de evento requeridos"
+                    ));
+                    exit;
+                }
+                $imagenFile = isset($_FILES['imagen']) ? $_FILES['imagen'] : null;
+                $eventoData = array(
+                    'nombre_evento' => $data['evento_data']['nombre_evento']
+                );
+                $result = $admin->agregarEvento($eventoData, $imagenFile);
+                break;
+                
+            case 'editar_evento':
+                if (!isset($data['evento_data']) || !isset($data['evento_id'])) {
+                    http_response_code(400);
+                    echo json_encode(array(
+                        "success" => false,
+                        "message" => "Datos de evento e ID requeridos"
+                    ));
+                    exit;
+                }
+                $imagenFile = isset($_FILES['imagen']) ? $_FILES['imagen'] : null;
+                $eventoData = array(
+                    'nombre_evento' => $data['evento_data']['nombre_evento']
+                );
+                $result = $admin->editarEvento($eventoData, $data['evento_id'], $imagenFile);
+                break;
+                
+            case 'eliminar_evento':
+                if (!isset($data['evento_id'])) {
+                    http_response_code(400);
+                    echo json_encode(array(
+                        "success" => false,
+                        "message" => "ID de evento requerido"
+                    ));
+                    exit;
+                }
+                $result = $admin->eliminarEvento($data['evento_id']);
+                break;
+                
+            case 'eliminar_imagen_evento':
+                if (!isset($data['evento_id'])) {
+                    http_response_code(400);
+                    echo json_encode(array(
+                        "success" => false,
+                        "message" => "ID de evento requerido"
+                    ));
+                    exit;
+                }
+                $result = $admin->eliminarImagenEvento($data['evento_id']);
                 break;
                 
             default:
