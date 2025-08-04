@@ -501,6 +501,115 @@ class Admin {
             );
         }
     }
+
+    // Dar admin a un usuario
+    public function darAdmin($userId, $codigo) {
+        try {
+            // Verificar si el usuario existe
+            $query_check_user = "SELECT COUNT(*) as existe FROM usuarios WHERE id = :user_id";
+            $stmt_check_user = $this->conn->prepare($query_check_user);
+            $stmt_check_user->bindParam(":user_id", $userId, PDO::PARAM_INT);
+            $stmt_check_user->execute();
+            
+            $result_check_user = $stmt_check_user->fetch(PDO::FETCH_ASSOC);
+            if ($result_check_user['existe'] == 0) {
+                return array(
+                    "success" => false,
+                    "message" => "El usuario no existe"
+                );
+            }
+            
+            // Verificar si ya es administrador
+            $query_check_admin = "SELECT COUNT(*) as existe FROM administradores WHERE usuario_id = :user_id AND activo = 1";
+            $stmt_check_admin = $this->conn->prepare($query_check_admin);
+            $stmt_check_admin->bindParam(":user_id", $userId, PDO::PARAM_INT);
+            $stmt_check_admin->execute();
+            
+            $result_check_admin = $stmt_check_admin->fetch(PDO::FETCH_ASSOC);
+            if ($result_check_admin['existe'] > 0) {
+                return array(
+                    "success" => false,
+                    "message" => "El usuario ya es administrador"
+                );
+            }
+            
+            // Validar que el código no esté vacío
+            if (empty($codigo)) {
+                return array(
+                    "success" => false,
+                    "message" => "El código de administrador es requerido"
+                );
+            }
+            
+            // Insertar como administrador con el código proporcionado
+            $query = "INSERT INTO administradores (usuario_id, codigo, activo) VALUES (:user_id, :codigo, 1)";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":user_id", $userId, PDO::PARAM_INT);
+            $stmt->bindParam(":codigo", $codigo);
+            $stmt->execute();
+            
+            return array(
+                "success" => true,
+                "message" => "Usuario promovido a administrador correctamente"
+            );
+            
+        } catch(PDOException $e) {
+            return array(
+                "success" => false,
+                "message" => "Error en la base de datos: " . $e->getMessage()
+            );
+        }
+    }
+
+    // Quitar admin a un usuario
+    public function quitarAdmin($userId) {
+        try {
+            // Verificar si el usuario existe
+            $query_check_user = "SELECT COUNT(*) as existe FROM usuarios WHERE id = :user_id";
+            $stmt_check_user = $this->conn->prepare($query_check_user);
+            $stmt_check_user->bindParam(":user_id", $userId, PDO::PARAM_INT);
+            $stmt_check_user->execute();
+            
+            $result_check_user = $stmt_check_user->fetch(PDO::FETCH_ASSOC);
+            if ($result_check_user['existe'] == 0) {
+                return array(
+                    "success" => false,
+                    "message" => "El usuario no existe"
+                );
+            }
+            
+            // Verificar si es administrador
+            $query_check_admin = "SELECT COUNT(*) as existe FROM administradores WHERE usuario_id = :user_id AND activo = 1";
+            $stmt_check_admin = $this->conn->prepare($query_check_admin);
+            $stmt_check_admin->bindParam(":user_id", $userId, PDO::PARAM_INT);
+            $stmt_check_admin->execute();
+            
+            $result_check_admin = $stmt_check_admin->fetch(PDO::FETCH_ASSOC);
+            if ($result_check_admin['existe'] == 0) {
+                return array(
+                    "success" => false,
+                    "message" => "El usuario no es administrador"
+                );
+            }
+            
+            // Eliminar completamente el registro de administrador
+            $query = "DELETE FROM administradores WHERE usuario_id = :user_id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":user_id", $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return array(
+                "success" => true,
+                "message" => "Privilegios de administrador removidos correctamente"
+            );
+            
+        } catch(PDOException $e) {
+            return array(
+                "success" => false,
+                "message" => "Error en la base de datos: " . $e->getMessage()
+            );
+        }
+    }
 }
 
 // Manejar la solicitud
@@ -639,6 +748,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
                 $result = $admin->agregarParticipacion($data['user_id'], $data['evento_id'], $data['nro_certificado'], $data['estado_pago']);
+                break;
+                
+            case 'dar_admin':
+                if (!isset($data['user_id']) || !isset($data['codigo'])) {
+                    http_response_code(400);
+                    echo json_encode(array(
+                        "success" => false,
+                        "message" => "ID de usuario y código de administrador requeridos"
+                    ));
+                    exit;
+                }
+                $result = $admin->darAdmin($data['user_id'], $data['codigo']);
+                break;
+                
+            case 'quitar_admin':
+                if (!isset($data['user_id'])) {
+                    http_response_code(400);
+                    echo json_encode(array(
+                        "success" => false,
+                        "message" => "ID de usuario requerido"
+                    ));
+                    exit;
+                }
+                $result = $admin->quitarAdmin($data['user_id']);
                 break;
                 
             case 'verificar_codigo_admin':

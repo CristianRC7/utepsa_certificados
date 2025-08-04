@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Config from '../utils/Config.js';
-import { Edit, Trash2, Eye, Settings, Shield, Plus } from 'lucide-react';
+import { Edit, Trash2, Eye, Settings, Shield, Plus, UserMinus, X } from 'lucide-react';
 import Modal from '../components/Modal.jsx';
 import ModalParticipaciones from '../components/ModalParticipaciones.jsx';
 
@@ -15,6 +15,7 @@ const AdminPanelComponent = () => {
   const [modalMode, setModalMode] = useState('add');
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalParticipacionesOpen, setModalParticipacionesOpen] = useState(false);
+  const [modalCodigoAdminOpen, setModalCodigoAdminOpen] = useState(false);
 
   useEffect(() => {
     cargarUsuarios();
@@ -107,8 +108,94 @@ const AdminPanelComponent = () => {
   };
 
   const handleDarAdmin = (usuario) => {
-    console.log('Dar admin a:', usuario);
-    // Aquí irá la lógica para dar permisos de administrador
+    setSelectedUser(usuario);
+    setModalCodigoAdminOpen(true);
+  };
+
+  const handleCloseModalCodigoAdmin = () => {
+    setModalCodigoAdminOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleConfirmarDarAdmin = async (codigo) => {
+    try {
+      const adminSession = localStorage.getItem('adminSession');
+      const sessionData = JSON.parse(adminSession);
+      
+      const response = await fetch(Config.getAdminUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'dar_admin',
+          admin_user_id: sessionData.user.id,
+          user_id: selectedUser.id,
+          codigo: codigo
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Recargar la lista de usuarios
+        await cargarUsuarios();
+        setModalCodigoAdminOpen(false);
+        setSelectedUser(null);
+        if (window.showToast) {
+          await window.showToast.success('Usuario promovido a administrador correctamente');
+        }
+      } else {
+        if (window.showToast) {
+          await window.showToast.error(data.message || 'Error al dar admin al usuario');
+        }
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Error al dar admin:', error);
+      if (window.showToast) {
+        await window.showToast.error('Error al dar admin al usuario');
+      }
+    }
+  };
+
+  const handleQuitarAdmin = async (usuario) => {
+    try {
+      const adminSession = localStorage.getItem('adminSession');
+      const sessionData = JSON.parse(adminSession);
+      
+      const response = await fetch(Config.getAdminUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'quitar_admin',
+          admin_user_id: sessionData.user.id,
+          user_id: usuario.id
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Recargar la lista de usuarios
+        await cargarUsuarios();
+        if (window.showToast) {
+          await window.showToast.success('Privilegios de administrador removidos correctamente');
+        }
+      } else {
+        if (window.showToast) {
+          await window.showToast.error(data.message || 'Error al quitar admin al usuario');
+        }
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Error al quitar admin:', error);
+      if (window.showToast) {
+        await window.showToast.error('Error al quitar admin al usuario');
+      }
+    }
   };
 
   const handleAgregarUsuario = () => {
@@ -395,11 +482,11 @@ const AdminPanelComponent = () => {
                           )}
                          {usuario.es_admin === 1 ? (
                            <button
-                             onClick={() => handleVerOpcionesAdmin(usuario)}
+                             onClick={() => handleQuitarAdmin(usuario)}
                              className="text-purple-600 hover:text-purple-800 transition-colors p-1 rounded-md hover:bg-purple-50 cursor-pointer"
-                             title="Ver opciones de admin"
+                             title="Quitar admin"
                            >
-                             <Settings size={18} />
+                             <UserMinus size={18} />
                            </button>
                          ) : (
                            <button
@@ -446,13 +533,87 @@ const AdminPanelComponent = () => {
        />
 
        {/* Modal Participaciones */}
-       <ModalParticipaciones
-         isOpen={modalParticipacionesOpen}
-         onClose={handleCloseModalParticipaciones}
-         user={selectedUser}
-       />
-     </div>
-   );
- };
+               <ModalParticipaciones
+          isOpen={modalParticipacionesOpen}
+          onClose={handleCloseModalParticipaciones}
+          user={selectedUser}
+        />
+
+        {/* Modal de Código de Administrador */}
+        {modalCodigoAdminOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">Dar Administrador</h3>
+                </div>
+                <button
+                  onClick={handleCloseModalCodigoAdmin}
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.target);
+                  handleConfirmarDarAdmin(formData.get('codigo'));
+                }} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Usuario
+                    </label>
+                    <input
+                      type="text"
+                      value={`${selectedUser?.nombre} ${selectedUser?.apellido} (${selectedUser?.usuario})`}
+                      disabled
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Código de Administrador
+                    </label>
+                    <input
+                      type="text"
+                      name="codigo"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#cf152d]/20 focus:border-[#cf152d] transition-all duration-200"
+                      placeholder="Ingresa el código de administrador"
+                      required
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Este código será usado para acceder al panel de administración
+                    </p>
+                  </div>
+                  
+                  <div className="flex space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={handleCloseModalCodigoAdmin}
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors cursor-pointer"
+                    >
+                      Dar Administrador
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
 export default AdminPanelComponent;
