@@ -135,8 +135,20 @@ try {
     $nombreCompleto = mb_strtoupper($result['nombre'] . ' ' . $result['apellido'], 'UTF-8');
     $nombreEvento = $result['nombre_evento'];
 
-    // Configurar PDF
-    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+    // Configurar PDF con dimensiones específicas para JETS 2025
+    if (strpos($nombreEvento, 'JETS 2025') !== false) {
+        // Dimensiones exactas de la imagen: 791,1111 px x 612,3604 px
+        // Convertir píxeles a puntos (1 punto = 1/72 pulgada, asumiendo 96 DPI)
+        $widthPt = (791.1111 * 72) / 96;  // 593.33 puntos
+        $heightPt = (612.3604 * 72) / 96; // 459.27 puntos
+        
+        // Crear PDF con orientación horizontal (landscape) para JETS 2025
+        $pdf = new TCPDF('L', 'pt', array($heightPt, $widthPt), true, 'UTF-8', false);
+    } else {
+        // Para otros eventos, usar A4 estándar
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+    }
+    
     $pdf->setPrintHeader(false);
     $pdf->setPrintFooter(false);
     $pdf->SetMargins(0, 0, 0);
@@ -145,7 +157,13 @@ try {
 
     // Cargar imagen de fondo si existe
     if ($useBackgroundImage) {
-        $pdf->Image($imageFile, 0, 0, $pdf->getPageWidth(), $pdf->getPageHeight(), '', '', '', false, 300, '', false, false, 0, false, false, false);
+        if (strpos($nombreEvento, 'JETS 2025') !== false) {
+            // Para JETS 2025, hacer que la imagen llene completamente el PDF horizontal
+            $pdf->Image($imageFile, 0, 0, $pdf->getPageWidth(), $pdf->getPageHeight(), '', '', '', false, 300, '', false, false, 0, false, false, false);
+        } else {
+            // Para otros eventos, usar el comportamiento original
+            $pdf->Image($imageFile, 0, 0, $pdf->getPageWidth(), $pdf->getPageHeight(), '', '', '', false, 300, '', false, false, 0, false, false, false);
+        }
     } else {
         // Si no existe la imagen, crear un fondo blanco
         $pdf->SetFillColor(255, 255, 255);
@@ -153,30 +171,44 @@ try {
     }
 
     // Configurar fuente y posición del nombre
-    $pdf->SetFont('helvetica', 'B', 26);
-    $yNombre = 125; // Posición Y por defecto
-    
-    // Ajustar posición Y según el evento si es necesario
-    if (strpos($nombreEvento, 'JETS 2022') !== false) {
-        $yNombre = 143;
-    } elseif (strpos($nombreEvento, 'JETS 2024') !== false) {
-        $yNombre = 128;
-    } elseif (strpos($nombreEvento, 'JETS 2023') !== false) {
-        $yNombre = 128;
+    if (strpos($nombreEvento, 'JETS 2025') !== false) {
+        // Para JETS 2025, posicionar el texto según el diseño del certificado
+        
+        // El nombre va en la parte central del certificado
+        $pdf->SetFont('helvetica', 'B', 24);
+        $xNombre = ($pdf->getPageWidth() - $pdf->getStringWidth($nombreCompleto)) / 2;
+        $yNombre = 220; // Posición Y centrada en el área de texto
+        $pdf->Text($xNombre, $yNombre, $nombreCompleto);
+        
+        // Agregar número de certificado en la esquina inferior derecha
+        $pdf->SetFont('helvetica', 'B', 12);
+        $xNroCertificado = $pdf->getPageWidth() - 70;
+        $yNroCertificado = $pdf->getPageHeight() - 30;
+        $pdf->Text($xNroCertificado, $yNroCertificado, 'Nro* ' . $nroCertificado);
+        
     } else {
-        // por defecto sin ningun evento definido
-        $yNombre = 125;
+        // Para otros eventos, usar las posiciones originales
+        $pdf->SetFont('helvetica', 'B', 26);
+        $yNombre = 125; // Posición Y por defecto
+        
+        if (strpos($nombreEvento, 'JETS 2022') !== false) {
+            $yNombre = 143;
+        } elseif (strpos($nombreEvento, 'JETS 2024') !== false) {
+            $yNombre = 128;
+        } elseif (strpos($nombreEvento, 'JETS 2023') !== false) {
+            $yNombre = 128;
+        }
+        
+        // Centrar y escribir el nombre en mayúsculas
+        $xNombre = ($pdf->getPageWidth() - $pdf->getStringWidth($nombreCompleto)) / 2;
+        $pdf->Text($xNombre, $yNombre, $nombreCompleto);
+        
+        // Agregar número de certificado
+        $pdf->SetFont('helvetica', 'B', 14);
+        $xNroCertificado = $pdf->getPageWidth() - 25;
+        $yNroCertificado = $pdf->getPageHeight() - 10;
+        $pdf->Text($xNroCertificado, $yNroCertificado, 'Nro* ' . $nroCertificado);
     }
-
-    // Centrar y escribir el nombre en mayúsculas
-    $xNombre = ($pdf->getPageWidth() - $pdf->getStringWidth($nombreCompleto)) / 2;
-    $pdf->Text($xNombre, $yNombre, $nombreCompleto);
-
-    // Agregar número de certificado
-    $pdf->SetFont('helvetica', 'B', 14);
-    $xNroCertificado = $pdf->getPageWidth() - 25;
-    $yNroCertificado = $pdf->getPageHeight() - 10;
-    $pdf->Text($xNroCertificado, $yNroCertificado, 'Nro* ' . $nroCertificado);
 
     // Generar nombre del archivo con el evento
     $nombreArchivo = 'certificado_' . str_replace(' ', '_', strtolower($nombreEvento)) . '.pdf';

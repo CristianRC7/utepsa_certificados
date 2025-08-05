@@ -4,7 +4,7 @@ import Config from '../utils/Config.js';
 // Variables globales para paginación
 let certificadosActuales = [];
 let paginaActual = 1;
-const certificadosPorPagina = 4;
+const certificadosPorPagina = 2;
 let usuarioActualId = null;
 
 // Funcionalidad de login

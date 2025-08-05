@@ -279,14 +279,14 @@ const Modal = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-4 py-3 bg-[#cf152d] text-white rounded-lg hover:bg-[#cf152d]/90 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                  className="flex-1 px-4 py-3 bg-[#cf152d] text-white rounded-lg hover:bg-[#cf152d]/90 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>{loading ? 'Guardando...' : 'Guardar'}</span>
