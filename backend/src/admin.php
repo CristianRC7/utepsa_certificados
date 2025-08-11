@@ -264,25 +264,13 @@ class Admin {
                 $stmt_admin->bindParam(":user_id", $userId, PDO::PARAM_INT);
                 $stmt_admin->execute();
                 
-                // 2. Eliminar participaciones en eventos (si existe)
+                // 2. Eliminar participaciones en eventos
                 $query_participaciones = "DELETE FROM participaciones WHERE usuario_id = :user_id";
                 $stmt_participaciones = $this->conn->prepare($query_participaciones);
                 $stmt_participaciones->bindParam(":user_id", $userId, PDO::PARAM_INT);
                 $stmt_participaciones->execute();
                 
-                // 3. Eliminar certificados (si existe)
-                $query_certificados = "DELETE FROM certificados WHERE usuario_id = :user_id";
-                $stmt_certificados = $this->conn->prepare($query_certificados);
-                $stmt_certificados->bindParam(":user_id", $userId, PDO::PARAM_INT);
-                $stmt_certificados->execute();
-                
-                // 4. Eliminar pagos (si existe)
-                $query_pagos = "DELETE FROM pagos WHERE usuario_id = :user_id";
-                $stmt_pagos = $this->conn->prepare($query_pagos);
-                $stmt_pagos->bindParam(":user_id", $userId, PDO::PARAM_INT);
-                $stmt_pagos->execute();
-                
-                // 5. Finalmente, eliminar el usuario
+                // 3. Finalmente, eliminar el usuario
                 $query_usuario = "DELETE FROM usuarios WHERE id = :id";
                 $stmt_usuario = $this->conn->prepare($query_usuario);
                 $stmt_usuario->bindParam(":id", $userId, PDO::PARAM_INT);
@@ -293,7 +281,7 @@ class Admin {
                 
                 return array(
                     "success" => true,
-                    "message" => "Usuario y todos sus datos relacionados eliminados correctamente"
+                    "message" => "Usuario, participaciones y permisos de administrador eliminados correctamente"
                 );
                 
             } catch(PDOException $e) {
